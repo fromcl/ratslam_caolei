@@ -63,7 +63,7 @@ void image_callback(sensor_msgs::ImageConstPtr image, ros::Publisher * pub_vt)
   static ratslam_ros::ViewTemplate vt_output;
 
   // FIXME: intelligent handling of image encoding
-  lv->on_image(&image->data[0], (image->encoding == "bgr8" ? false : true), image->width, image->height);
+  lv->on_image(&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height);
 
   vt_output.header.stamp = ros::Time::now();
   vt_output.header.seq++;
@@ -111,7 +111,7 @@ int main(int argc, char * argv[])
   ros::Publisher pub_vt = node.advertise<ratslam_ros::ViewTemplate>(topic_root + "/LocalView/Template", 0);
 
   image_transport::ImageTransport it(node);
-  image_transport::Subscriber sub = it.subscribe(topic_root, 0, boost::bind(image_callback, _1, &pub_vt));/* 我改过 以前topic_root是+"/camera/image" */
+  image_transport::Subscriber sub = it.subscribe(topic_root + "/camera/image", 0, boost::bind(image_callback, _1, &pub_vt));
 
 
 #ifdef HAVE_IRRLICHT

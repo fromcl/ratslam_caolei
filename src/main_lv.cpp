@@ -111,7 +111,7 @@ int main(int argc, char * argv[])
   ros::Publisher pub_vt = node.advertise<ratslam_ros::ViewTemplate>(topic_root + "/LocalView/Template", 0);
 
   image_transport::ImageTransport it(node);
-  image_transport::Subscriber sub = it.subscribe(topic_root + "/camera/image", 0, boost::bind(image_callback, _1, &pub_vt));
+  image_transport::Subscriber sub = it.subscribe(topic_root, 0, boost::bind(image_callback, _1, &pub_vt));
 
 
 #ifdef HAVE_IRRLICHT

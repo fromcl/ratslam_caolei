@@ -97,7 +97,7 @@ int main(int argc, char * argv[])
   pub_vo = node.advertise<nav_msgs::Odometry>(topic_root + "/odom", 0);
 
   image_transport::ImageTransport it(node);
-  image_transport::Subscriber sub = it.subscribe(topic_root + "/camera/image", 1, image_callback);
+  image_transport::Subscriber sub = it.subscribe(topic_root, 1, image_callback);
 
   ros::spin();
 
