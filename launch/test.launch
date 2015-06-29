@@ -1,0 +1,22 @@
+
+<launch>
+
+	<machine name="local_alt" address="localhost" default="true" />
+	
+	
+    <!-- THIS IS THE RATSLAM STUFF-->
+  <!--node name="rviz" pkg="rviz" type="rviz" args="-d /home/seneda/.rviz/Ratslam.rviz"/-->
+  <!--remap from="/stereo/left/image_mono/compressed" to="/test/camera/image/compressed"/-->
+  
+  <!--remap from="/odom" to="/test/odom"/-->
+
+  <node name="RatSLAMLocalViewCells" pkg="ratslam_ros" type="ratslam_lv" args="$(find ratslam_ros)/config/config_test.txt _image_transport:=compressed" cwd="node" required="true" />
+  <node name="RatSLAMPoseCells" pkg="ratslam_ros" type="ratslam_pc" args="$(find ratslam_ros)/config/config_test.txt _image_transport:=compressed" cwd="node" required="true" />
+  <node name="RatSLAMExperienceMap" pkg="ratslam_ros" type="ratslam_em" args="$(find ratslam_ros)/config/config_test.txt _image_transport:=compressed" cwd="node" required="true" />
+  <node name="RatSLAMVisualOdometry" pkg="ratslam_ros" type="ratslam_vo" args="$(find ratslam_ros)/config/config_test.txt _image_transport:=compressed" cwd="node" required="true" />
+  
+  <node pkg="rqt_plot" type="rqt_plot" name="plot_vt_em" args="/test/LocalView/Template/current_id,/test/PoseCell/TopologicalAction/dest_id" />
+  <node pkg="rosbag" type="record" name="record" args="/test/ExperienceMap/Map /test/ExperienceMap/RobotPose /test/LocalView/Template /test/PoseCell/TopologicalAction -O ratslam_out.bag" />
+
+<!-- THIS IS THE RATSLAM STUFF-->
+</launch>

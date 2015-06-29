@@ -1,0 +1,53 @@
+[general]
+topic_root=/camera/rgb/image_raw
+                                                	
+[ratslam]
+
+image_crop_x_min=0
+image_crop_x_max=320
+image_crop_y_min=20
+image_crop_y_max=260
+template_x_size=60
+template_y_size=50
+
+vt_match_threshold = 0.02
+vt_shift_match = 4
+vt_step_match = 1
+vt_active_decay = 1.0
+
+vt_normalisation = 0.5
+
+pc_vt_restore=0.04
+pc_cell_x_size = 0.25
+pc_dim_xy = 20
+
+
+pc_vt_inject_energy = 0.05
+
+
+exp_loops=20
+exp_delta_pc_threshold = 1
+
+[visual_odometry]
+vtrans_image_x_min=0
+vtrans_image_x_max=400
+vtrans_image_y_min=0
+vtrans_image_y_max=300
+
+vrot_image_x_min=0
+vrot_image_x_max=400
+vrot_image_y_min=0
+vrot_image_y_max=300
+
+camera_fov_deg=40
+camera_hz = 30
+vtrans_scaling = 30
+vtrans_max=10
+
+[draw]
+enable=1
+vt_window_width=640
+vt_window_height=900
+exp_map_size=500
+posecells_size=250
+
