@@ -42,7 +42,7 @@ using boost::property_tree::ptree;
 namespace ratslam {
 
 template<typename T>
-inline void get_setting_from_ptree(T & var, boost::property_tree::ptree & settings, std::string name, T default_value)  //给var引用的常量或变量依次赋值
+inline void get_setting_from_ptree(T & var, boost::property_tree::ptree & settings, std::string name, T default_value)  //给var引用的常量赋值(形式未知boost::property_tree::ptree)
 {
 	try
 	{
@@ -55,7 +55,7 @@ inline void get_setting_from_ptree(T & var, boost::property_tree::ptree & settin
 	}
 }
 
-inline bool get_setting_child(boost::property_tree::ptree & child, boost::property_tree::ptree & settings, std::string name, bool pause_on_error = true)  //给child引用的boost::property_tree::ptree对象批量取值
+inline bool get_setting_child(boost::property_tree::ptree & child, boost::property_tree::ptree & settings, std::string name, bool pause_on_error = true)  //给child引用的boost::property_tree::ptree对象赋值
 {
 	try
 	{
