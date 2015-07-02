@@ -10,4 +10,7 @@ VTRANS的意义
 vrot的意义
 [角速度]
 
+"visual_odometry.cpp"中vtrans_profile.resize();vtrans_prev_profile.resize();vrot_profile.resize();vrot_profile.resize();vrot_prev_profile.resize();
+[]
+
 "main_vo.cpp"中image_callback();ConstPtr前没加::可以?

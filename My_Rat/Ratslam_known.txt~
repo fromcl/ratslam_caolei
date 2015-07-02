@@ -24,7 +24,6 @@ vtrans_profile.resize();      确定图片横向像素点个数来确定容器�
 vtrans_prev_profile.resize(); 用于视觉里程计或上一个模板不确定
 vrot_profile.resize();        未知
 vrot_prev_profile.resize();   未知
-current_view[i];              等价于vtrans_profile
 ();
 ();
 ();

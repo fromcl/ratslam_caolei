@@ -55,7 +55,7 @@ VisualOdometry::VisualOdometry(ptree settings)
 
   vtrans_profile.resize(VTRANS_IMAGE_X_MAX - VTRANS_IMAGE_X_MIN);  //确定图片横向像素点个数来确定容器大小400,用于模板不确定
   vtrans_prev_profile.resize(VTRANS_IMAGE_X_MAX - VTRANS_IMAGE_X_MIN);  //用于视觉里程计或上一个模板不确定
-  vrot_profile.resize(VROT_IMAGE_X_MAX - VROT_IMAGE_X_MIN);  //400未知
+  vrot_profile.resize(VROT_IMAGE_X_MAX - VROT_IMAGE_X_MIN);  //未知
   vrot_prev_profile.resize(VROT_IMAGE_X_MAX - VROT_IMAGE_X_MIN);  //未知
 
   first = true;
