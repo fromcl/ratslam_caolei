@@ -67,8 +67,8 @@ void VisualOdometry::on_image(const unsigned char * data, bool greyscale, unsign
 {
   double dummy;
 
-  IMAGE_WIDTH = image_width;  //400
-  IMAGE_HEIGHT = image_height;  //300
+  IMAGE_WIDTH = image_width;  //我假定它为400,与真实值差距不大,后续下文都用400来盲算
+  IMAGE_HEIGHT = image_height;  //假定它为300
 
   if (first)  //判断构造函数结束,这个if只进来一次
   {
