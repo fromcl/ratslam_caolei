@@ -86,7 +86,7 @@ void VisualOdometry::on_image(const unsigned char * data, bool greyscale, unsign
   visual_odo(&vtrans_profile[0], vtrans_profile.size(), &vtrans_prev_profile[0], vtrans_ms, &dummy);  //第一次利用dummy这个假值屏蔽掉计算错误的angular.z,得到linear.x,因为那几个常量可能不一样而导致vtrans和vrot两个数组不一样,只有速度数组可得到正确的里程计速度值,角速度数组得到正确的里程计角速度值
 
   convert_view_to_view_template(&vrot_profile[0], data, greyscale, VROT_IMAGE_X_MIN, VROT_IMAGE_X_MAX, VROT_IMAGE_Y_MIN, VROT_IMAGE_Y_MAX);
-  visual_odo(&vrot_profile[0], vrot_profile.size(), &vrot_prev_profile[0], &dummy, vrot_rads);  //第一次利用dummy这个假值屏蔽掉计算错误的linear.x,得到angular.z
+  visual_odo(&vrot_profile[0], vrot_profile.size(), &vrot_prev_profile[0], &dummy, vrot_rads);  //第二次利用dummy这个假值屏蔽掉计算错误的linear.x,得到angular.z
 }
 
 //visual_odo                   (&vtrans_profile[0], vtrans_profile.size(), &vtrans_prev_profile[0], vtrans_ms, &dummy);  vtrans_ms为x方向速度
@@ -118,11 +118,10 @@ void VisualOdometry::visual_odo(double *data, unsigned short width, double *oldd
 
     if (cdiff < mindiff)
     {
-      mindiff = cdiff;  //每次都会覆盖上次的mindiff值,直到某次移动使cdiff>=mindiff时,mindiff的值才被定下来
-      minoffset = -offset;  //同上,minoffset为最终移位次数,且大于-40
-    }  //此处可优化来减少计算次数:else break;
-  }
-
+      mindiff = cdiff;  //取最小的mindiff值,直到40次循环完,mindiff的值才被定下来
+      minoffset = -offset;  //同上,minoffset为得到最小的mindiff值的移位次数,它大于-40
+    }
+//-------------------------------------------------------------------------
   for (offset = 0; offset < slen; offset++)
   {
     cdiff = 0;
@@ -136,18 +135,18 @@ void VisualOdometry::visual_odo(double *data, unsigned short width, double *oldd
 
     if (cdiff < mindiff)
     {
-      mindiff = cdiff;  //(最终的mindiff敲定为两种平均移位差值中最怎样的一个值?)
-      minoffset = offset;  //minoffset为最终移位次数,且小于40
+      mindiff = cdiff;  //最终的mindiff敲定为两种平均移位差值中最小的一个值
+      minoffset = offset;  //minoffset为得到最小的mindiff值的移位次数,正为左转,负为右转
     }
   }
-
+//-------------------------------------------------------------------------
   for (unsigned int i = 0; i < width; i++)
   {
     olddata[i] = data[i];  //将新图化作旧图
   }
-  *vrot_rads = minoffset * CAMERA_FOV_DEG / IMAGE_WIDTH * CAMERA_HZ * M_PI / 180.0;
-  *vtrans_ms = mindiff * VTRANS_SCALING;
-  if (*vtrans_ms > VTRANS_MAX)
+  *vrot_rads = minoffset * CAMERA_FOV_DEG / IMAGE_WIDTH * CAMERA_HZ * M_PI / 180.0;  //是用来计算里程计角速度的
+  *vtrans_ms = mindiff * VTRANS_SCALING;  //用来计算里程计线速度的
+  if (*vtrans_ms > VTRANS_MAX)  //约束ratslam计算出线速度的最大值
     *vtrans_ms = VTRANS_MAX;
 
 }
