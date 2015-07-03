@@ -11,3 +11,9 @@ vrot的意义
 [角速度]
 
 "main_vo.cpp"中image_callback();ConstPtr前没加::可以?
+[]
+
+convert_view_to_view_template();用的是哪种滤波?
+[]
+
+

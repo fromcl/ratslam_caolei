@@ -62,7 +62,7 @@ void image_callback(sensor_msgs::ImageConstPtr image)  //ConstPtr前没加::可�
   odom_output.header.stamp = image->header.stamp;  //image的header.stamp是用来记录图像的采集时间,此时将它同步到标准里程计的时间戳上
   odom_output.header.seq++;  //维护消息的序列号,其实和image->header.seq相等
 
-  pub_vo.publish(odom_output);  //发布视觉里程计
+  pub_vo.publish(odom_output);  //发布里程计
 }
 
 

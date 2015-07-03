@@ -53,16 +53,16 @@ VisualOdometry::VisualOdometry(ptree settings)
   get_setting_from_ptree(VTRANS_SCALING, settings, "vtrans_scaling", 100.0);
   get_setting_from_ptree(VTRANS_MAX, settings, "vtrans_max", 20.0);
 
-  vtrans_profile.resize(VTRANS_IMAGE_X_MAX - VTRANS_IMAGE_X_MIN);  //确定图片横向像素点个数来确定容器大小400,用于模板不确定
-  vtrans_prev_profile.resize(VTRANS_IMAGE_X_MAX - VTRANS_IMAGE_X_MIN);  //用于视觉里程计或上一个模板不确定
-  vrot_profile.resize(VROT_IMAGE_X_MAX - VROT_IMAGE_X_MIN);  //未知
+  vtrans_profile.resize(VTRANS_IMAGE_X_MAX - VTRANS_IMAGE_X_MIN);  //确定图片横向像素点个数来确定容器大小400
+  vtrans_prev_profile.resize(VTRANS_IMAGE_X_MAX - VTRANS_IMAGE_X_MIN);  //用于拷贝vtrans_profile数据二次利用
+  vrot_profile.resize(VROT_IMAGE_X_MAX - VROT_IMAGE_X_MIN);  //400未知
   vrot_prev_profile.resize(VROT_IMAGE_X_MAX - VROT_IMAGE_X_MIN);  //未知
 
   first = true;
 }
 
 //vo->on_image(&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height, &odom_output.twist.twist.linear.x, &odom_output.twist.twist.angular.z);\
-linear.x为x方向角速度,angular.z为绕z轴旋转角速度
+linear.x为x方向速度,angular.z为绕z轴旋转角速度
 void VisualOdometry::on_image(const unsigned char * data, bool greyscale, unsigned int image_width, unsigned int image_height, double *vtrans_ms, double *vrot_rads)
 {
   double dummy;
@@ -72,8 +72,7 @@ void VisualOdometry::on_image(const unsigned char * data, bool greyscale, unsign
 
   if (first)  //判断构造函数结束
   {
-    for (unsigned int i = 0; i < vtrans_profile.size(); i++)  //可能是把某一张图作为模版存起来
-    {
+    for (unsigned int i = 0; i < vtrans_profile.size(); i++)  //拷贝vtrans_profile数据传给visual_odo()
       vtrans_prev_profile[i] = vtrans_profile[i];
     }
     for (unsigned int i = 0; i < vrot_profile.size(); i++)
@@ -83,13 +82,14 @@ void VisualOdometry::on_image(const unsigned char * data, bool greyscale, unsign
     first = false;
   }
 
-  convert_view_to_view_template(&vtrans_profile[0], data, greyscale, VTRANS_IMAGE_X_MIN, VTRANS_IMAGE_X_MAX, VTRANS_IMAGE_Y_MIN, VTRANS_IMAGE_Y_MAX);
+  convert_view_to_view_template(&vtrans_profile[0], data, greyscale, VTRANS_IMAGE_X_MIN, VTRANS_IMAGE_X_MAX, VTRANS_IMAGE_Y_MIN, VTRANS_IMAGE_Y_MAX);  //利用一种滤波转换视图模板
   visual_odo(&vtrans_profile[0], vtrans_profile.size(), &vtrans_prev_profile[0], vtrans_ms, &dummy);
 
   convert_view_to_view_template(&vrot_profile[0], data, greyscale, VROT_IMAGE_X_MIN, VROT_IMAGE_X_MAX, VROT_IMAGE_Y_MIN, VROT_IMAGE_Y_MAX);
   visual_odo(&vrot_profile[0], vrot_profile.size(), &vrot_prev_profile[0], &dummy, vrot_rads);
 }
 
+//visual_odo                   (&vtrans_profile[0], vtrans_profile.size(), &vtrans_prev_profile[0], vtrans_ms, &dummy);  vtrans_ms为x方向速度
 void VisualOdometry::visual_odo(double *data, unsigned short width, double *olddata, double *vtrans_ms, double *vrot_rads)
 {
   double mindiff = 1e6;
@@ -97,7 +97,7 @@ void VisualOdometry::visual_odo(double *data, unsigned short width, double *oldd
   double cdiff;
   int offset;
 
-  int cwl = width;
+  int cwl = width;  //400
   int slen = 40;
 
   int k;
@@ -105,13 +105,13 @@ void VisualOdometry::visual_odo(double *data, unsigned short width, double *oldd
   // slen is the range of offsets in pixels to consider i.e. slen = 0 considers only the no offset case
   // cwl is the length of the intensity profile to actually compare, and must be < than image width – 1 * slen
 
-  for (offset = 0; offset < slen; offset++)
+  for (offset = 0; offset < slen; offset++)  //做40次
   {
     cdiff = 0;
 
-    for (k = 0; k < cwl - offset; k++)
+    for (k = 0; k < cwl - offset; k++)  //做(400-offset)次offset最大值为40
     {
-      cdiff += fabs(data[k] - olddata[k + offset]);
+      cdiff += fabs(data[k] - olddata[k + offset]);  //
     }
 
     cdiff /= (1.0 * (cwl - offset));
@@ -154,7 +154,7 @@ void VisualOdometry::visual_odo(double *data, unsigned short width, double *oldd
 
 //convert_view_to_view_template                   (&vtrans_profile[0], data, greyscale, VTRANS_IMAGE_X_MIN, VTRANS_IMAGE_X_MAX, VTRANS_IMAGE_Y_MIN, VTRANS_IMAGE_Y_MAX);
 void VisualOdometry::convert_view_to_view_template(double *current_view, const unsigned char *view_rgb, bool grayscale, int X_RANGE_MIN, int X_RANGE_MAX, int Y_RANGE_MIN,
-                                                   int Y_RANGE_MAX)
+                                                   int Y_RANGE_MAX)  //利用一种滤波转换视图模板
 {
   unsigned int TEMPLATE_Y_SIZE = 1;
   unsigned int TEMPLATE_X_SIZE = X_RANGE_MAX - X_RANGE_MIN;  //400
