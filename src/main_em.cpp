@@ -136,8 +136,8 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
   switch (action->action)  //ratslam_ros::TopologicalAction::CREATE_NODE的值为1,CREATE_EDGE为2,SET_NODE为3
   {
     case ratslam_ros::TopologicalAction::CREATE_NODE:
-      em->on_create_experience(action->dest_id);
-      em->on_set_experience(action->dest_id, 0);
+      em->on_create_experience(action->dest_id);  //返回值为经验地图的长度-1
+      em->on_set_experience(action->dest_id, 0);  //返回值为bool型,第一次进入返回为0
       break;
 
     case ratslam_ros::TopologicalAction::CREATE_EDGE:

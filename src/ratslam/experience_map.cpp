@@ -73,33 +73,33 @@ ExperienceMap::~ExperienceMap()
 int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action->dest_id为int32型的
 {
 
-  experiences.resize(experiences.size() + 1);  //长度变为了
-  Experience * new_exp = &(*(experiences.end() - 1));
+  experiences.resize(experiences.size() + 1);  //experiences为vector类型，长度变为了1,之前的experiences.reserve(10000);并没有给它分配10000的空间
+  Experience * new_exp = &(*(experiences.end() - 1));  //Experience为一个结构体类型，是经验地图的一个节点，new_exp指针为experiences容器的最后一个成员的地址
 
-  if (experiences.size() == 0)
-  {
-    new_exp->x_m = 0;
-    new_exp->y_m = 0;
-    new_exp->th_rad = 0;
-  }
-  else
-  {
-    new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;
-    new_exp->y_m = experiences[current_exp_id].y_m + accum_delta_y;
-    new_exp->th_rad = clip_rad_180(accum_delta_facing);
-  }
-  new_exp->id = experiences.size() - 1;
-
-  new_exp->goal_to_current = -1;
-  new_exp->current_to_goal = -1;
-
-  // Link the current experience to the last.
-  // FIXME: jumps back to last set pose with wheel odom?
-  if (experiences.size() != 1)
-    on_create_link(get_current_id(), experiences.size() - 1, 0);
-
-  return experiences.size() - 1;
-}
+  if (experiences.size() == 0)                                                                 //struct Experience
+  {                                                                                            //{
+    new_exp->x_m = 0;                                                                          //  int id; //它自己的标识
+    new_exp->y_m = 0;                                                                          //  double x_m, y_m, th_rad;
+    new_exp->th_rad = 0;                                                                       //  int vt_id;
+  }                                                                                            //
+  else                                                                                         //  std::vector<unsigned int> links_from; //从这个经验地图链接
+  {                                                                                            //  std::vector<unsigned int> links_to; //链接到本次经验地图
+    new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;                            //
+    new_exp->y_m = experiences[current_exp_id].y_m + accum_delta_y;                            //
+    new_exp->th_rad = clip_rad_180(accum_delta_facing);  //config文件里无这个参数,第一次为90    //  //目标导航
+  }                                                                                            //  double time_from_current_s;  //当前时间秒
+  new_exp->id = experiences.size() - 1;  //id是从0开始计数                                      //  unsigned int goal_to_current, current_to_goal;  //目标到当前,当前到目标
+                                                                                               //  template<typename Archive>
+  new_exp->goal_to_current = -1;                                                               //    void serialize(Archive& ar, const unsigned int version)
+  new_exp->current_to_goal = -1;                                                               //    {
+                                                                                               //      ar & id;
+  // Link the current experience to the last.                                                  //      ar & x_m & y_m & th_rad;
+  // FIXME: jumps back to last set pose with wheel odom?                                       //      ar & vt_id;
+  if (experiences.size() != 1)                                                                 //      ar & links_from & links_to;
+    on_create_link(get_current_id(), experiences.size() - 1, 0);                               //      ar & time_from_current_s;
+                                                                                               //      ar & goal_to_current & current_to_goal;
+  return experiences.size() - 1;                                                               //    }
+}                                                                                              //};
 
 // update the current position of the experience map
 // since the last experience
@@ -201,7 +201,7 @@ bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_ra
 }
 
 // change the current experience
-int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)
+int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //new_exp_id为action->dest_id,rel_rad为0
 {
   if (new_exp_id > experiences.size() - 1)
     return 0;
