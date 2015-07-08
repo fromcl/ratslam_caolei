@@ -70,10 +70,10 @@ ExperienceMap::~ExperienceMap()
 }
 
 // create a new experience for a given position 
-int ExperienceMap::on_create_experience(unsigned int exp_id)
+int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action->dest_id为int32型的
 {
 
-  experiences.resize(experiences.size() + 1);
+  experiences.resize(experiences.size() + 1);  //长度变为了
   Experience * new_exp = &(*(experiences.end() - 1));
 
   if (experiences.size() == 0)
@@ -107,8 +107,8 @@ void ExperienceMap::on_odo(double vtrans, double vrot, double time_diff_s)
 {
   vtrans = vtrans * time_diff_s;
   vrot = vrot * time_diff_s;
-  accum_delta_facing = clip_rad_180(accum_delta_facing + vrot);
-  accum_delta_x = accum_delta_x + vtrans * cos(accum_delta_facing);
+  accum_delta_facing = clip_rad_180(accum_delta_facing + vrot);  //accum_delta_facing为π/2
+  accum_delta_x = accum_delta_x + vtrans * cos(accum_delta_facing);  //一点一点累加出坐标x,y
   accum_delta_y = accum_delta_y + vtrans * sin(accum_delta_facing);
   accum_delta_time_s += time_diff_s;
 }
@@ -230,7 +230,7 @@ struct compare
   }
 };
 
-double exp_euclidean_m(Experience *exp1, Experience *exp2)
+double exp_euclidean_m(Experience *exp1, Experience *exp2)  //返回微分路程  sqrt(△x²+△y²)
 {
   return sqrt(
       (double)((exp1->x_m - exp2->x_m) * (exp1->x_m - exp2->x_m) + (exp1->y_m - exp2->y_m) * (exp1->y_m - exp2->y_m)));
@@ -443,7 +443,7 @@ void ExperienceMap::add_goal(double x_m, double y_m)
   double min_dist = DBL_MAX;
   double dist;
 
-  if (MAX_GOALS != 0 && goal_list.size() >= MAX_GOALS)
+  if (MAX_GOALS != 0 && goal_list.size() >= MAX_GOALS)  //MAX_GOALS等于10,goal_list.size()大于10就会return
     return;
 
   for (unsigned int i = 0; i < experiences.size(); i++)

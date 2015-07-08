@@ -22,3 +22,34 @@ on_image();                        只是用来调用convert_view_to_view_templa
 convert_view_to_view_template();   利用一种滤波转换视图模板
 current_view[i];                   等价于vtrans_profile
 visual_odo();                      dummy这个假值屏蔽掉计算错误的linear.x和angular.z,因为那几个常量可能不一样而导致vtrans和vrot两个数组不一样,只有速度数组可得到正确的里程计速度值,角速度数组得到里程计角速度值
+
+
+
+[main_em.cpp]
+on_odo();                          一点一点累加出坐标x,y
+ros::Time prev_time(0);            维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
+ros::Time prev_goal_update(0);     
+on_create_experience();            
+();
+();
+();
+();
+();
+();
+();
+
+
+
+[experience_map.cpp]
+();
+();
+();
+();
+();
+();
+();
+();
+();
+();
+
+

@@ -28,7 +28,7 @@
 
 #include "visual_odometry.h"
 #include "../utils/utils.h"
-
+ 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -73,6 +73,7 @@ void VisualOdometry::on_image(const unsigned char * data, bool greyscale, unsign
   if (first)  //判断构造函数结束,这个if只进来一次
   {
     for (unsigned int i = 0; i < vtrans_profile.size(); i++)  //拷贝vtrans_profile数据传给visual_odo()
+    {
       vtrans_prev_profile[i] = vtrans_profile[i];
     }
     for (unsigned int i = 0; i < vrot_profile.size(); i++)
@@ -121,6 +122,7 @@ void VisualOdometry::visual_odo(double *data, unsigned short width, double *oldd
       mindiff = cdiff;  //取最小的mindiff值,直到40次循环完,mindiff的值才被定下来
       minoffset = -offset;  //同上,minoffset为得到最小的mindiff值的移位次数,它大于-40
     }
+  }
 //-------------------------------------------------------------------------
   for (offset = 0; offset < slen; offset++)
   {

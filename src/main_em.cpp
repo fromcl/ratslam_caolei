@@ -73,12 +73,12 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
   {
     double time_diff = (odo->header.stamp - prev_time).toSec();
     //ROS_DEBUG_STREAM("EM:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z << " t=" << time_diff << " goal=" << em->get_current_goal_id());
-    em->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);
+    em->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);  //一点一点累加出坐标x,y
   }
 
   static ros::Time prev_goal_update(0);
 
-  if (em->get_current_goal_id() >= 0)
+  if (em->get_current_goal_id() >= 0)  //第一次进来为-1,第二次进来为 (int)goal_list.front()容器头成员的地址
   {
     // (prev_goal_update.toSec() == 0 || (odo->header.stamp - prev_goal_update).toSec() > 5)
     //em->calculate_path_to_goal(odo->header.stamp.toSec());
@@ -126,14 +126,14 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
     }
   }
 
-  prev_time = odo->header.stamp;
+  prev_time = odo->header.stamp;  //维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
 }
 
 void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::ExperienceMap *em)
 {
   ROS_DEBUG_STREAM("EM:action_callback{" << ros::Time::now() << "} action=" << action->action << " src=" << action->src_id << " dst=" << action->dest_id);
 
-  switch (action->action)
+  switch (action->action)  //ratslam_ros::TopologicalAction::CREATE_NODE的值为1,CREATE_EDGE为2,SET_NODE为3
   {
     case ratslam_ros::TopologicalAction::CREATE_NODE:
       em->on_create_experience(action->dest_id);
@@ -292,22 +292,20 @@ int main(int argc, char * argv[])
   ros::NodeHandle node;
 
   ratslam::ExperienceMap * em = new ratslam::ExperienceMap(ratslam_settings);
-
+ 
+//------------------------------全为发布-----------------------------------
   pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);
   pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);
-
   pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);
-
   pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);
-
+//------------------------------全为订阅-----------------------------------
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
                                                                     ros::TransportHints().tcpNoDelay());
   ros::Subscriber sub_action = node.subscribe<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0, boost::bind(action_callback, _1, em),
                                                                               ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
-
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
                                                                         ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
-
+//-------------------------------------------------------------------------
   // Distance server by Mr-Yellow 2015-04-25
   ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(
     topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em)
