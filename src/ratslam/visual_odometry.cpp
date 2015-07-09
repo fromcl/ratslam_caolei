@@ -183,11 +183,11 @@ void VisualOdometry::convert_view_to_view_template(double *current_view, const u
           for (int y = y_block; y < (y_block + y_block_size); y++)  //300次,y逐一加到299
           {//
             pos = (x + y * IMAGE_WIDTH);  //IMAGE_WIDTH为400,实质上是参数vrot_image_x_max
-            current_view[data_next] += (double)(view_rgb[pos]);  //为vtrans_profile移位自加image->data的第(x+400y)位
+            current_view[data_next] += (double)(view_rgb[pos]);  //为vtrans_profile移位自加image->data的第(x+400y)位,每自加300次移位1次,共移位400次
           }
         }
         current_view[data_next] /= (255.0);
-        current_view[data_next] /= (x_block_size * y_block_size);  //自除以300
+        current_view[data_next] /= (x_block_size * y_block_size);  //自除以300,以上两步共除以76500
         data_next++;
       }
     }

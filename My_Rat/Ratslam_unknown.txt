@@ -18,3 +18,8 @@ convert_view_to_view_template();用的是哪种滤波?
 
 ros::Time这个类型是干嘛的
 []
+
+成员除以平均值不知它的数学意义是什么
+[]
+
+

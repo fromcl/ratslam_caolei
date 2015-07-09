@@ -62,11 +62,11 @@ LocalViewMatch::LocalViewMatch(ptree settings)
   get_setting_from_ptree(IMAGE_VT_Y_RANGE_MIN, settings, "image_crop_y_min", 0);
   get_setting_from_ptree(IMAGE_VT_Y_RANGE_MAX, settings, "image_crop_y_max", -1);
 
-  TEMPLATE_SIZE = TEMPLATE_X_SIZE * TEMPLATE_Y_SIZE;
+  TEMPLATE_SIZE = TEMPLATE_X_SIZE * TEMPLATE_Y_SIZE;  //3000=60*50
 
   templates.reserve(10000);
 
-  current_view.resize(TEMPLATE_SIZE);
+  current_view.resize(TEMPLATE_SIZE);  //3000
 
   current_vt = 0;
   prev_vt = 0;
@@ -78,27 +78,28 @@ LocalViewMatch::~LocalViewMatch()
 
 }
 
+//lv->on_image               (&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height);
 void LocalViewMatch::on_image(const unsigned char *view_rgb, bool greyscale, unsigned int image_width, unsigned int image_height)
 {
   if (view_rgb == NULL)
     return;
 
-  IMAGE_WIDTH = image_width;
-  IMAGE_HEIGHT = image_height;
+  IMAGE_WIDTH = image_width;  //假定400
+  IMAGE_HEIGHT = image_height;  //假定300
 
-  if (IMAGE_VT_X_RANGE_MAX == -1)
+  if (IMAGE_VT_X_RANGE_MAX == -1)  //config内定义图像裁剪的大小,x为320
     IMAGE_VT_X_RANGE_MAX = IMAGE_WIDTH;
-  if (IMAGE_VT_Y_RANGE_MAX == -1)
+  if (IMAGE_VT_Y_RANGE_MAX == -1)  //y为20-260,若都未设置,则不裁剪
     IMAGE_VT_Y_RANGE_MAX = IMAGE_HEIGHT;
 
-  this->view_rgb = view_rgb;
+  this->view_rgb = view_rgb;  //如此做法不改变原值
   this->greyscale = greyscale;
 
-  convert_view_to_view_template(greyscale);
-  prev_vt = get_current_vt();
-  unsigned int vt_match_id;
-  compare(vt_error, vt_match_id);
-  if (vt_error <= VT_MATCH_THRESHOLD)
+  convert_view_to_view_template(greyscale);  //从当前视图到视图模板，将current_view[i]经过一种标准化处理
+  prev_vt = get_current_vt();  //返回值为current_vt，初值为0
+  unsigned int vt_match_id;  //
+  compare(vt_error, vt_match_id);  //一开始并为给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值，？？？？？？？？？？？？？
+  if (vt_error <= VT_MATCH_THRESHOLD)  //返回的比较值和匹配阀值相比较，如果小？？？？？？，如果大则？？？？？
   {
     set_current_vt((int)vt_match_id);
     cout << "VTM[" << setw(4) << get_current_vt() << "] " << endl;
@@ -107,69 +108,65 @@ void LocalViewMatch::on_image(const unsigned char *view_rgb, bool greyscale, uns
   else
   {
     vt_relative_rad = 0;
-    set_current_vt(create_template());
-    cout << "VTN[" << setw(4) << get_current_vt() << "] " << endl;
+    set_current_vt(create_template());  //create_template()返回当前模板的id号，set_current_vt将当前模板号赋值给current_vt（初值为0）
+    cout << "VTN[" << setw(4) << get_current_vt() << "] " << endl;  //将该模板id号打印出来×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××
     cout.flush();
   }
 
 }
 
 
-void LocalViewMatch::clip_view_x_y(int &x, int &y)
+void LocalViewMatch::clip_view_x_y(int &x, int &y)  //约束x,y的上下限
 {
   if (x < 0)
     x = 0;
   else if (x > TEMPLATE_X_SIZE - 1)
-    x = TEMPLATE_X_SIZE - 1;
+    x = TEMPLATE_X_SIZE - 1;  //x=60-1
 
   if (y < 0)
     y = 0;
   else if (y > TEMPLATE_Y_SIZE - 1)
-    y = TEMPLATE_Y_SIZE - 1;
+    y = TEMPLATE_Y_SIZE - 1;  //y=50-1
 
 }
 
-void LocalViewMatch::convert_view_to_view_template(bool grayscale)
+void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前视图到视图模板，将current_view[i]经过一种标准化处理
 {
   int data_next = 0;
-  int sub_range_x = IMAGE_VT_X_RANGE_MAX - IMAGE_VT_X_RANGE_MIN;
-  int sub_range_y = IMAGE_VT_Y_RANGE_MAX - IMAGE_VT_Y_RANGE_MIN;
-  int x_block_size = sub_range_x / TEMPLATE_X_SIZE;
-  int y_block_size = sub_range_y / TEMPLATE_Y_SIZE;
+  int sub_range_x = IMAGE_VT_X_RANGE_MAX - IMAGE_VT_X_RANGE_MIN;  //320=320-0
+  int sub_range_y = IMAGE_VT_Y_RANGE_MAX - IMAGE_VT_Y_RANGE_MIN;  //240=260-20
+  int x_block_size = sub_range_x / TEMPLATE_X_SIZE;  //(int)5.3333=320/60
+  int y_block_size = sub_range_y / TEMPLATE_Y_SIZE;  //(int)4.8=240/50  以上两步应该是为了计算模板块的大小
   int pos;
 
-  for (unsigned int i; i < current_view.size(); i++)
+  for (unsigned int i; i < current_view.size(); i++)  //size为3000
     current_view[i] = 0;
 
-  if (grayscale)
-  {
-    for (int y_block = IMAGE_VT_Y_RANGE_MIN, y_block_count = 0; y_block_count < TEMPLATE_Y_SIZE; y_block +=
-        y_block_size, y_block_count++)
-    {
-      for (int x_block = IMAGE_VT_X_RANGE_MIN, x_block_count = 0; x_block_count < TEMPLATE_X_SIZE; x_block +=
-          x_block_size, x_block_count++)
-      {
-        for (int x = x_block; x < (x_block + x_block_size); x++)
-        {
-          for (int y = y_block; y < (y_block + y_block_size); y++)
+  if (grayscale)  //利用一种滤波得到视图模板,和odo中的滤波不同,这看起来是把图片压扁在再滤波得到一个更长的一个数组3000位
+  {//                  20                                                       50                     20+=4
+    for (int y_block = IMAGE_VT_Y_RANGE_MIN, y_block_count = 0; y_block_count < TEMPLATE_Y_SIZE; y_block += y_block_size, y_block_count++)  //做50次
+    {//                  0                                                        60                      0+=5
+      for (int x_block = IMAGE_VT_X_RANGE_MIN, x_block_count = 0; x_block_count < TEMPLATE_X_SIZE; x_block += x_block_size, x_block_count++)  //做60次
+      {//                                    5
+        for (int x = x_block; x < (x_block + x_block_size); x++)  //做5次
+        {//                                    4
+          for (int y = y_block; y < (y_block + y_block_size); y++)  //做4次
           {
-            pos = (x + y * IMAGE_WIDTH);
-            current_view[data_next] += (double)(view_rgb[pos]);
+            pos = (x + y * IMAGE_WIDTH);  //pos=x+400y
+            current_view[data_next] += (double)(view_rgb[pos]);  //给current_view移位自加image->data的第(x+400y)位,每自加20次移位1次,共移位60次
           }
         }
         current_view[data_next] /= (255.0);
-        current_view[data_next] /= (x_block_size * y_block_size);
+        current_view[data_next] /= (x_block_size * y_block_size);  //这两步给current_view[data_next]除5100
         data_next++;
       }
     }
   }
   else
   {
-    for (int y_block = IMAGE_VT_Y_RANGE_MIN, y_block_count = 0; y_block_count < TEMPLATE_Y_SIZE; y_block +=
-        y_block_size, y_block_count++)
+    for (int y_block = IMAGE_VT_Y_RANGE_MIN, y_block_count = 0; y_block_count < TEMPLATE_Y_SIZE; y_block += y_block_size, y_block_count++)
     {
-      for (int x_block = IMAGE_VT_X_RANGE_MIN, x_block_count = 0; x_block_count < TEMPLATE_X_SIZE; x_block +=
-          x_block_size, x_block_count++)
+      for (int x_block = IMAGE_VT_X_RANGE_MIN, x_block_count = 0; x_block_count < TEMPLATE_X_SIZE; x_block += x_block_size, x_block_count++)
       {
         for (int x = x_block; x < (x_block + x_block_size); x++)
         {
@@ -188,7 +185,7 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)
     }
   }
 
-  if (VT_NORMALISATION > 0)
+  if (VT_NORMALISATION > 0)  //为0.5,默认值为0
   {
     double avg_value = 0;
 
@@ -201,16 +198,16 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)
 
     for (unsigned int i = 0; i < current_view.size(); i++)
     {
-      current_view[i] = std::max(0.0, std::min(current_view[i] * VT_NORMALISATION / avg_value, 1.0));
+      current_view[i] = std::max(0.0, std::min(current_view[i] * VT_NORMALISATION / avg_value, 1.0));  //又一次滤波,成员除以平均值不知它的数学意义是什么
     }
   }
 
   // now do patch normalisation
   // +- patch size on the pixel, ie 4 will give a 9x9
-  if (VT_PATCH_NORMALISATION > 0)
+  if (VT_PATCH_NORMALISATION > 0)  //未设置,默认值为0，以下假定为1来盲算
   {
-    int patch_size = VT_PATCH_NORMALISATION;
-    int patch_total = (patch_size * 2 + 1) * (patch_size * 2 + 1);
+    int patch_size = VT_PATCH_NORMALISATION;  //VT标准化
+    int patch_total = (patch_size * 2 + 1) * (patch_size * 2 + 1);  //9=(1 * 2 + 1) * (1 * 2 + 1)
     double patch_sum;
     double patch_mean;
     double patch_std;
@@ -223,45 +220,46 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)
     for (unsigned int i = 0; i < current_view.size(); i++)
       current_view_copy[i] = current_view[i];
 
-    // this code could be significantly optimimised ....
-    for (int x = 0; x < TEMPLATE_X_SIZE; x++)
+    // this code could be significantly optimimised ....这个代码可以显著优化
+    for (int x = 0; x < TEMPLATE_X_SIZE; x++)  //做60次
     {
-      for (int y = 0; y < TEMPLATE_Y_SIZE; y++)
+      for (int y = 0; y < TEMPLATE_Y_SIZE; y++)  //做50次
       {
-        patch_sum = 0;
-        for (int patch_x = x - patch_size; patch_x < x + patch_size + 1; patch_x++)
-        {
-          for (int patch_y = y - patch_size; patch_y < y + patch_size + 1; patch_y++)
+        patch_sum = 0;//       1                         1
+        for (int patch_x = x - patch_size; patch_x < x + patch_size + 1; patch_x++)  //做3次
+        {//                      1                         1
+          for (int patch_y = y - patch_size; patch_y < y + patch_size + 1; patch_y++)  //做3次
+          {
+            patch_x_clip = patch_x;  //第一次进来x,y都为-1,之后9次（x，y）为（-1，-1）（-1,0）(-1，1）（0,-1）（0，0）（0,1）（1，-1）（1,0）（1,1）
+            patch_y_clip = patch_y;
+            clip_view_x_y(patch_x_clip, patch_y_clip);  //约束x,y的上下限在0-59、49间                                                      //       □ □ □ □
+                                                                                                                                          //       □ □ □ □
+            patch_sum += current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE];  //此计算公式抽象为黑点之和，边界外黑点向内重合：// 先↑   ■ ■ ■ □ □
+          }                                                                                                                               //     ■ ■ ■ □ □
+        }                                                                                                                                 //     ■ ■ ■后→
+        patch_mean = patch_sum / patch_total;  //÷9求像素平均
+
+        patch_sum = 0;//       1                         1
+        for (int patch_x = x - patch_size; patch_x < x + patch_size + 1; patch_x++)  //做3次
+        {//                      1                         1
+          for (int patch_y = y - patch_size; patch_y < y + patch_size + 1; patch_y++)  //做3次
           {
             patch_x_clip = patch_x;
             patch_y_clip = patch_y;
-            clip_view_x_y(patch_x_clip, patch_y_clip);
+            clip_view_x_y(patch_x_clip, patch_y_clip);  //约束x,y的上下限
 
-            patch_sum += current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE];
-          }
-        }
-        patch_mean = patch_sum / patch_total;
-
-        patch_sum = 0;
-        for (int patch_x = x - patch_size; patch_x < x + patch_size + 1; patch_x++)
-        {
-          for (int patch_y = y - patch_size; patch_y < y + patch_size + 1; patch_y++)
-          {
-            patch_x_clip = patch_x;
-            patch_y_clip = patch_y;
-            clip_view_x_y(patch_x_clip, patch_y_clip);
-
-            patch_sum += ((current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE] - patch_mean)
-                * (current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE] - patch_mean));
+            patch_sum += ((current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE] - patch_mean) * (current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE] - patch_mean));
+            //patch_sum为方差*9
           }
         }
 
-        patch_std = sqrt(patch_sum / patch_total);
+        patch_std = sqrt(patch_sum / patch_total);  //patch_std为这9个点像素值与平均值的 方差
 
-        if (patch_std < VT_MIN_PATCH_NORMALISATION_STD)
+        if (patch_std < VT_MIN_PATCH_NORMALISATION_STD)  //vt_min_patch_normalisation_std未定义，默认值为0
           current_view[x + y * TEMPLATE_X_SIZE] = 0.5;
         else {
           current_view[x + y * TEMPLATE_X_SIZE] = max((double) 0, min(1.0, (((current_view_copy[x + y * TEMPLATE_X_SIZE] - patch_mean) / patch_std) + 3.0)/6.0 ));
+          //将最小块标准化的一个算法，未知算法
         }
       }
     }
@@ -269,7 +267,7 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)
 
   double sum = 0;
 
-  // find the mean of the data
+  // find the mean of the data计算数据的平均值
   for (int i = 0; i < current_view.size(); i++)
     sum += current_view[i];
 
@@ -277,29 +275,29 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)
 
 }
 
-// create and add a visual template to the collection
+// create and add a visual template to the collection创建视觉模板添加到模板结构体中
 int LocalViewMatch::create_template()
 {
-  templates.resize(templates.size() + 1);
-  VisualTemplate * new_template = &(*(templates.end() - 1));
+  templates.resize(templates.size() + 1);  //长度变为1，之后开始加1
+  VisualTemplate * new_template = &(*(templates.end() - 1));  //VisualTemplate为一个结构体类型，是一个视图模板，new_template指针为templates容器的最后一个成员的地址
 
-  new_template->id = templates.size() - 1;
-  double * data_ptr = &current_view[0];
-  new_template->data.reserve(TEMPLATE_SIZE);
-  for (int i = 0; i < TEMPLATE_SIZE; i++)
+  new_template->id = templates.size() - 1;  //id是从0开始计数
+  double * data_ptr = &current_view[0];  //data_ptr指向被经过一种标准化处理的current_view[i]数组
+  new_template->data.reserve(TEMPLATE_SIZE);  //告知长度为3000
+  for (int i = 0; i < TEMPLATE_SIZE; i++)  //将这个视图模板放入该结构体中
     new_template->data.push_back(*(data_ptr++));
 
-  new_template->mean = current_mean;
+  new_template->mean = current_mean;  //整个模板像素平均值
 
-  return templates.size() - 1;
+  return templates.size() - 1;  //每个模板存在templates容器中，且返回当前模板ID
 }
 
 // compare a visual template to all the stored templates, allowing for 
 // slen pixel shifts in each direction
-// returns the matching template and the MSE
+// returns the matching template and the MSE  比较视觉模板所有存储的模板,允许slen像素变化每个方向返回匹配的模板和均方误差
 void LocalViewMatch::compare(double &vt_err, unsigned int &vt_match_id)
 {
-  if (templates.size() == 0)
+  if (templates.size() == 0)  //第一次比较时并没有模板，直接返回
   {
     vt_err = DBL_MAX;
     vt_error = vt_err;

@@ -108,10 +108,10 @@ int main(int argc, char * argv[])
   }
   ros::NodeHandle node;
 
-  ros::Publisher pub_vt = node.advertise<ratslam_ros::ViewTemplate>(topic_root + "/LocalView/Template", 0);
+  ros::Publisher pub_vt = node.advertise<ratslam_ros::ViewTemplate>(topic_root + "/LocalView/Template", 0);  //发布一个有当前ID和相对弧度的消息,之后被PC订阅
 
-  image_transport::ImageTransport it(node);
-  image_transport::Subscriber sub = it.subscribe(topic_root, 0, boost::bind(image_callback, _1, &pub_vt));
+  image_transport::ImageTransport it(node);  //NodeHandle被image_transport后用来订阅图片
+  image_transport::Subscriber sub = it.subscribe(topic_root, 0, boost::bind(image_callback, _1, &pub_vt));  //订阅到了摄像头的视频话题,传给image_callback
 
 
 #ifdef HAVE_IRRLICHT
