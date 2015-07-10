@@ -63,12 +63,12 @@ void image_callback(sensor_msgs::ImageConstPtr image, ros::Publisher * pub_vt)
   static ratslam_ros::ViewTemplate vt_output;
 
   // FIXME: intelligent handling of image encoding
-  lv->on_image(&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height);
+  lv->on_image(&image->data[0], (image->encoding == "rgb8" ? false : true), image->width, image->height);  //整体来说,是从templates中根据阀值来建立模板,再把模板附近的图片吸附在模板上
 
   vt_output.header.stamp = ros::Time::now();
   vt_output.header.seq++;
   vt_output.current_id = lv->get_current_vt();
-  vt_output.relative_rad = lv->get_relative_rad();
+  vt_output.relative_rad = lv->get_relative_rad();  //不知其何用
 
   // TODO: RTABMAP... here it goes out to pose cell
   pub_vt->publish(vt_output);
@@ -117,7 +117,7 @@ int main(int argc, char * argv[])
 #ifdef HAVE_IRRLICHT
     boost::property_tree::ptree draw_settings;
     get_setting_child(draw_settings, settings, "draw", true);
-    get_setting_from_ptree(use_graphics, draw_settings, "enable", true);
+    get_setting_from_ptree(use_graphics, draw_settings, "enable", true);  //enable被定义为1
     if (use_graphics)
       lvs = new ratslam::LocalViewScene(draw_settings, lv);
 #endif

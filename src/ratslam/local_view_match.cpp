@@ -66,7 +66,7 @@ LocalViewMatch::LocalViewMatch(ptree settings)
 
   templates.reserve(10000);
 
-  current_view.resize(TEMPLATE_SIZE);  //3000
+  current_view.resize(TEMPLATE_SIZE);  //3000，经过标准化处理的视觉模板数据部分（即template->data）由这里产生
 
   current_vt = 0;
   prev_vt = 0;
@@ -98,10 +98,10 @@ void LocalViewMatch::on_image(const unsigned char *view_rgb, bool greyscale, uns
   convert_view_to_view_template(greyscale);  //从当前视图到视图模板，将current_view[i]经过一种标准化处理
   prev_vt = get_current_vt();  //返回值为current_vt，初值为0
   unsigned int vt_match_id;  //
-  compare(vt_error, vt_match_id);  //一开始并为给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值，？？？？？？？？？？？？？
-  if (vt_error <= VT_MATCH_THRESHOLD)  //返回的比较值和匹配阀值相比较，如果小？？？？？？，如果大则？？？？？
+  compare(vt_error, vt_match_id);  //一开始并为给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值
+  if (vt_error <= VT_MATCH_THRESHOLD)  //返回的比较值和匹配阀值相比较
   {
-    set_current_vt((int)vt_match_id);
+    set_current_vt((int)vt_match_id);  //返回模板像素平均值相似附近模板匹配最小差距模板的vt.id
     cout << "VTM[" << setw(4) << get_current_vt() << "] " << endl;
     cout.flush();
   }
@@ -109,8 +109,8 @@ void LocalViewMatch::on_image(const unsigned char *view_rgb, bool greyscale, uns
   {
     vt_relative_rad = 0;
     set_current_vt(create_template());  //create_template()返回当前模板的id号，set_current_vt将当前模板号赋值给current_vt（初值为0）
-    cout << "VTN[" << setw(4) << get_current_vt() << "] " << endl;  //将该模板id号打印出来×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××
-    cout.flush();
+    cout << "VTN[" << setw(4) << get_current_vt() << "] " << endl;  //用get_current_vt()把current_vt值返回出来，再将该模板id号打印出来,setw(4)输出宽度为4个字符
+    cout.flush();  //用于刷新缓冲,无条件地将缓冲区中的输出信息送显示器
   }
 
 }
@@ -130,7 +130,7 @@ void LocalViewMatch::clip_view_x_y(int &x, int &y)  //约束x,y的上下限
 
 }
 
-void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前视图到视图模板，将current_view[i]经过一种标准化处理
+void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前视图到视图模板，将current_view[i]经过一种标准化处理，再将视觉模板一个一个装入template容器中
 {
   int data_next = 0;
   int sub_range_x = IMAGE_VT_X_RANGE_MAX - IMAGE_VT_X_RANGE_MIN;  //320=320-0
@@ -148,9 +148,9 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前�
     {//                  0                                                        60                      0+=5
       for (int x_block = IMAGE_VT_X_RANGE_MIN, x_block_count = 0; x_block_count < TEMPLATE_X_SIZE; x_block += x_block_size, x_block_count++)  //做60次
       {//                                    5
-        for (int x = x_block; x < (x_block + x_block_size); x++)  //做5次
+        for (int x = x_block; x < (x_block + x_block_size); x++)  //做5次,x=0,5,10,15...
         {//                                    4
-          for (int y = y_block; y < (y_block + y_block_size); y++)  //做4次
+          for (int y = y_block; y < (y_block + y_block_size); y++)  //做4次,y=0,4,8,12...
           {
             pos = (x + y * IMAGE_WIDTH);  //pos=x+400y
             current_view[data_next] += (double)(view_rgb[pos]);  //给current_view移位自加image->data的第(x+400y)位,每自加20次移位1次,共移位60次
@@ -304,7 +304,7 @@ void LocalViewMatch::compare(double &vt_err, unsigned int &vt_match_id)
     return;
   }
 
-  double *data = &current_view[0];
+  double *data = &current_view[0];  //经过标准化处理的视觉模板数据部分
   double mindiff, cdiff;
   mindiff = DBL_MAX;
 
@@ -326,127 +326,123 @@ void LocalViewMatch::compare(double &vt_err, unsigned int &vt_match_id)
   int offset;
   double epsilon = 0.005;
 
-  if (VT_PANORAMIC)
+  if (VT_PANORAMIC)  //未设置，默认值为0,若为1则精算,若为0则粗算
   {
 
-	BOOST_FOREACH(vt, templates)
-	{
-
-	if (abs(current_mean - vt.mean) > VT_MATCH_THRESHOLD + epsilon)
-	  continue;
+	  BOOST_FOREACH(vt, templates)  //遍历templates容器，依次将值赋给vt拿来用
+    {
+//                                                       0.005
+	    if (abs(current_mean - vt.mean) > VT_MATCH_THRESHOLD + epsilon)  //vt_match_threshold设置值为0.02，默认值为0.03,每次遍历用当前的模板像素平均值,去对比所有模板的像素平均值,差距太大就跳出BOOST本次循环
+	      continue;
 
 	// for each vt try matching the view at different offsets
 	// try to fast break based on error already great than previous errors
 	// handles 2d images shifting only in the x direction
 	// note I haven't tested on a 1d yet.
-	for (offset = 0; offset < TEMPLATE_X_SIZE; offset += VT_STEP_MATCH)
-	{
-	  cdiff = 0;
-	  template_start_ptr = &vt.data[0] + offset;
-	  column_start_ptr = &data[0];
-	  row_size = TEMPLATE_X_SIZE;
-	  column_end_ptr = &data[0] + TEMPLATE_SIZE - offset;
-	  sub_row_size = TEMPLATE_X_SIZE - offset;
+  	  for (offset = 0; offset < TEMPLATE_X_SIZE; offset += VT_STEP_MATCH)  //做60次，vt_step_match为1，默认值为5
+      {
+        cdiff = 0;
+        template_start_ptr = &vt.data[0] + offset;  //当前模板像素平均值临近的若干张模板
+        column_start_ptr = &data[0];  //当前拍摄的模板
+        row_size = TEMPLATE_X_SIZE;  //60
+        column_end_ptr = &data[0] + TEMPLATE_SIZE - offset;  //第一次column_end_ptr指向的数据第3000位,也就是角码[2999]处,之后逐次减1靠前指
+        sub_row_size = TEMPLATE_X_SIZE - offset;  //column_start_ptr到column_end_ptr间距离60,59,58...
 
 	  // do from offset to end
-	  for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)
-	  {
-		for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)
-		{
-		  cdiff += abs(*column_ptr - *template_ptr);
-		}
+//                        &data[0]                             &vt.data[0] + offset                 &data[0]+TEMPLATE_SIZE-offset   60                          60
+	      for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)  //做50次,60个为1组
+	      {//                                                                             等效于&data[0]+sub_row_size
+	  	    for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)  //第一次做60次,第二次做59次...
+	  	    {
+    	      cdiff += abs(*column_ptr - *template_ptr);  //当前模板 右移 与每个临近的template每60位进行移位对比累加,就像百叶窗打开
+	  	    }
 
 		// fast breaks
-		if (cdiff > mindiff)
-		  break;
-	  }
+		      if (cdiff > mindiff)
+		        break;
+	      }
 
 	  // do from start to offset
-	  template_start_ptr = &vt.data[0];
-	  column_start_ptr = &data[0] + TEMPLATE_X_SIZE - offset;
-	  row_size = TEMPLATE_X_SIZE;
-	  column_end_ptr = &data[0] + TEMPLATE_SIZE;
-	  sub_row_size = offset;
-	  for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)
-	  {
-		for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)
-		{
-		  cdiff += abs(*column_ptr - *template_ptr);
-		}
+	     template_start_ptr = &vt.data[0];
+	      column_start_ptr = &data[0] + TEMPLATE_X_SIZE - offset;  //当前拍摄的模板从60为开始
+	      row_size = TEMPLATE_X_SIZE;
+	      column_end_ptr = &data[0] + TEMPLATE_SIZE;  //
+	      sub_row_size = offset;
+	      for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)
+	      {
+		      for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)
+		      {
+		        cdiff += abs(*column_ptr - *template_ptr);  //当前模板 左移 与每个临近的template每60位进行移位对比累加,就像百叶窗打开
+		      }
 
 		// fast breaks
-		if (cdiff > mindiff)
-		  break;
-	  }
+		    if (cdiff > mindiff)  //两次累加和不能无穷大
+		      break;
+	      }
 
 
-	  if (cdiff < mindiff)
-	  {
-		mindiff = cdiff;
-		min_template = vt.id;
-		min_offset = offset;
-	  }
-	}
+	      if (cdiff < mindiff)  //找到那个区别最小的模板(应该是当前模板),存储它的ID号、累加次数
+	      {
+		     mindiff = cdiff;
+		     min_template = vt.id;
+		     min_offset = offset;
+	      }
+      } 
+    }
 
-	}
-
-	vt_relative_rad = (double) min_offset/TEMPLATE_X_SIZE * 2.0 * M_PI;
-	if (vt_relative_rad > M_PI)
-	vt_relative_rad = vt_relative_rad - 2.0 * M_PI;
-	vt_err = mindiff / (double) TEMPLATE_SIZE;
-	vt_match_id = min_template;
-
-	vt_error = vt_err;
+	  vt_relative_rad = (double) min_offset/TEMPLATE_X_SIZE * 2.0 * M_PI;
+	  if (vt_relative_rad > M_PI)
+	    vt_relative_rad = vt_relative_rad - 2.0 * M_PI;
+    vt_err = mindiff / (double) TEMPLATE_SIZE;
+    vt_match_id = min_template;
+    vt_error = vt_err;
 
   } else {
 
-	BOOST_FOREACH(vt, templates)
-	{
+	  BOOST_FOREACH(vt, templates)
+	  {
 
-	if (abs(current_mean - vt.mean) > VT_MATCH_THRESHOLD + epsilon)
-	  continue;
+	    if (abs(current_mean - vt.mean) > VT_MATCH_THRESHOLD + epsilon)
+	      continue;
 
 	// for each vt try matching the view at different offsets
 	// try to fast break based on error already great than previous errors
 	// handles 2d images shifting only in the x direction
 	// note I haven't tested on a 1d yet.
-	for (offset = 0; offset < VT_SHIFT_MATCH*2+1; offset += VT_STEP_MATCH)
-	{
-	  cdiff = 0;
-	  template_start_ptr = &vt.data[0] + offset;
-	  column_start_ptr = &data[0] + VT_SHIFT_MATCH;
-	  row_size = TEMPLATE_X_SIZE;
-	  column_end_ptr = &data[0] + TEMPLATE_SIZE - VT_SHIFT_MATCH;
-	  sub_row_size = TEMPLATE_X_SIZE - 2*VT_SHIFT_MATCH;
+	    for (offset = 0; offset < VT_SHIFT_MATCH*2+1; offset += VT_STEP_MATCH)  //做9次,vt_shift_match设置值为4,默认值为25
+	    {
+	      cdiff = 0;
+	      template_start_ptr = &vt.data[0] + offset;
+	      column_start_ptr = &data[0] + VT_SHIFT_MATCH;
+	      row_size = TEMPLATE_X_SIZE;
+	      column_end_ptr = &data[0] + TEMPLATE_SIZE - VT_SHIFT_MATCH;
+	      sub_row_size = TEMPLATE_X_SIZE - 2*VT_SHIFT_MATCH;
 
-	  for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)
-	  {
-		for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)
-		{
-		  cdiff += abs(*column_ptr - *template_ptr);
-		}
+	      for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)
+	      {
+		      for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)
+		      {
+		        cdiff += abs(*column_ptr - *template_ptr);
+		      }
 
 		// fast breaks
-		if (cdiff > mindiff)
-		  break;
+		    if (cdiff > mindiff)
+		      break;
+	      }
+
+	      if (cdiff < mindiff)
+	      {
+		      mindiff = cdiff;
+		      min_template = vt.id;
+		      min_offset = 0;
+	      }
+	    }
 	  }
 
-	  if (cdiff < mindiff)
-	  {
-		mindiff = cdiff;
-		min_template = vt.id;
-		min_offset = 0;
-	  }
-	}
-
-	}
-
-	vt_relative_rad = 0;
-	vt_err = mindiff / (double)(TEMPLATE_SIZE - 2 * VT_SHIFT_MATCH * TEMPLATE_Y_SIZE);
-	vt_match_id = min_template;
-
-	vt_error = vt_err;
-
+    vt_relative_rad = 0;
+    vt_err = mindiff / (double)(TEMPLATE_SIZE - 2 * VT_SHIFT_MATCH * TEMPLATE_Y_SIZE);
+    vt_match_id = min_template;
+    vt_error = vt_err;
   }
 }
 
