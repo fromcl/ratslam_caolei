@@ -64,7 +64,7 @@ LocalViewMatch::LocalViewMatch(ptree settings)
 
   TEMPLATE_SIZE = TEMPLATE_X_SIZE * TEMPLATE_Y_SIZE;  //3000=60*50
 
-  templates.reserve(10000);
+  templates.reserve(10000);  //用于存放一个一个视图模板
 
   current_view.resize(TEMPLATE_SIZE);  //3000，经过标准化处理的视觉模板数据部分（即template->data）由这里产生
 
@@ -97,8 +97,8 @@ void LocalViewMatch::on_image(const unsigned char *view_rgb, bool greyscale, uns
 
   convert_view_to_view_template(greyscale);  //从当前视图到视图模板，将current_view[i]经过一种标准化处理
   prev_vt = get_current_vt();  //返回值为current_vt，初值为0
-  unsigned int vt_match_id;  //
-  compare(vt_error, vt_match_id);  //一开始并为给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值
+  unsigned int vt_match_id;  //区别最小的模板的ID号
+  compare(vt_error, vt_match_id);  //一开始并未给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值,之后返回最小区别模板的区别值,和该模板的id号
   if (vt_error <= VT_MATCH_THRESHOLD)  //返回的比较值和匹配阀值相比较
   {
     set_current_vt((int)vt_match_id);  //返回模板像素平均值相似附近模板匹配最小差距模板的vt.id
@@ -189,12 +189,12 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前�
   {
     double avg_value = 0;
 
-    for (unsigned int i = 0; i < current_view.size(); i++)
+    for (unsigned int i = 0; i < current_view.size(); i++)  //做3000次
     {
       avg_value += current_view[i];
     }
 
-    avg_value /= current_view.size();
+    avg_value /= current_view.size();  //÷3000
 
     for (unsigned int i = 0; i < current_view.size(); i++)
     {
@@ -275,7 +275,7 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前�
 
 }
 
-// create and add a visual template to the collection创建视觉模板添加到模板结构体中
+// create and add a visual template to the collection创建视觉模板将current_view添加到模板结构体中
 int LocalViewMatch::create_template()
 {
   templates.resize(templates.size() + 1);  //长度变为1，之后开始加1
@@ -363,16 +363,16 @@ void LocalViewMatch::compare(double &vt_err, unsigned int &vt_match_id)
 	      }
 
 	  // do from start to offset
-	     template_start_ptr = &vt.data[0];
+	      template_start_ptr = &vt.data[0];
 	      column_start_ptr = &data[0] + TEMPLATE_X_SIZE - offset;  //当前拍摄的模板从60为开始
 	      row_size = TEMPLATE_X_SIZE;
-	      column_end_ptr = &data[0] + TEMPLATE_SIZE;  //
+	      column_end_ptr = &data[0] + TEMPLATE_SIZE;  //指向模板的结束
 	      sub_row_size = offset;
 	      for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)
 	      {
 		      for (column_ptr = column_row_ptr, template_ptr = template_row_ptr; column_ptr < column_row_ptr + sub_row_size; column_ptr++, template_ptr++)
 		      {
-		        cdiff += abs(*column_ptr - *template_ptr);  //当前模板 左移 与每个临近的template每60位进行移位对比累加,就像百叶窗打开
+		        cdiff += abs(*column_ptr - *template_ptr);  //当前模板 左移 与每个临近的template每60位进行移位对比之差累加,就像百叶窗打开
 		      }
 
 		// fast breaks

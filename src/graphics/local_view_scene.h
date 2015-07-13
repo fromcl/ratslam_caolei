@@ -41,26 +41,25 @@ namespace ratslam
 class LocalViewScene
 {
 public:
-  LocalViewScene(ptree & settings, LocalViewMatch *in_vt)
+  LocalViewScene(ptree & settings, LocalViewMatch *in_vt)  //此处settings为ini中的draw块,*in_vt为LocalViewMatch的构造函数
   {
 
-    get_setting_from_ptree(vt_window_width, settings, "vt_window_width", 640);
-    get_setting_from_ptree(vt_window_height, settings, "vt_window_height", 480);
+    get_setting_from_ptree(vt_window_width, settings, "vt_window_width", 640);  //设置值为640
+    get_setting_from_ptree(vt_window_height, settings, "vt_window_height", 480);  //设置值为900
 
-    update_ptr(in_vt);
+    update_ptr(in_vt);  //将vtm指向LocalViewMatch的构造函数
 
     // the camera image is in the top half and the two template windows in the bottom half
   //  vt_window_height = vtm->IMAGE_HEIGHT * ((double)vt_window_width/vtm->IMAGE_WIDTH) * 2;
 
-    device = irr::createDevice(irr::video::EDT_OPENGL, irr::core::dimension2d<irr::u32>(vt_window_width, vt_window_height), 32, false,
-                               false, false);
-    device->setWindowCaption(L"openRatSLAM Local View");
+    device = irr::createDevice(irr::video::EDT_OPENGL, irr::core::dimension2d<irr::u32>(vt_window_width, vt_window_height), 32, false, false, false);  //启动鬼火设备,把vt_window_width与vt_window_height传值进去
+    device->setWindowCaption(L"openRatSLAM Local View");  //设置窗口标题
 
-    driver = device->getVideoDriver();
-    scene = device->getSceneManager();
+    driver = device->getVideoDriver();  //得到视频驱动程序
+    scene = device->getSceneManager();  //获得现场管理
 
 
-    view_template_scene = scene->createNewSceneManager(false);
+    view_template_scene = scene->createNewSceneManager(false);  //创建新的场景管理器
 
   }
 

@@ -76,7 +76,7 @@ void image_callback(sensor_msgs::ImageConstPtr image, ros::Publisher * pub_vt)
 #ifdef HAVE_IRRLICHT
   if (use_graphics)
   {
-    lvs->draw_all();
+    lvs->draw_all();  //第一次进入image_callback不会执行
   }
 #endif
 }
@@ -113,13 +113,13 @@ int main(int argc, char * argv[])
   image_transport::ImageTransport it(node);  //NodeHandle被image_transport后用来订阅图片
   image_transport::Subscriber sub = it.subscribe(topic_root, 0, boost::bind(image_callback, _1, &pub_vt));  //订阅到了摄像头的视频话题,传给image_callback
 
-
+//Irrlicht是采用C++封装的3D引擎，是一款轻量级的3D引擎:
 #ifdef HAVE_IRRLICHT
     boost::property_tree::ptree draw_settings;
     get_setting_child(draw_settings, settings, "draw", true);
     get_setting_from_ptree(use_graphics, draw_settings, "enable", true);  //enable被定义为1
     if (use_graphics)
-      lvs = new ratslam::LocalViewScene(draw_settings, lv);
+      lvs = new ratslam::LocalViewScene(draw_settings, lv);  //LocalViewScene为LocalViewScene的构造函数
 #endif
 
   ros::spin();
