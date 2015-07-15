@@ -83,7 +83,7 @@ path_integration();                  整合路径,<读到此处搁浅...>
 [main_em.cpp]
 ros::Time prev_time(0);              维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
 ros::Time prev_goal_update(0);       用于存放视觉里程计的时间戳
-on_create_experience();            
+on_create_experience();              
 ();
 ();
 ();
