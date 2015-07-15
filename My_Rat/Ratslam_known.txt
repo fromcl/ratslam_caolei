@@ -45,10 +45,44 @@ create_template();                   创建视觉模板将current_view添加到�
 
 
 
+[main_pc.cpp]
+get_current_exp_id();                直接返回current_exp
+();
+();
+();
+();
+();
+();
+();
+
+
+
+[posecell_network.cpp]
+PC_DIM_XY=20
+PC_DIM_TH=36               默认
+PC_W_E_DIM=7               默认
+PC_W_I_DIM=5               默认
+PC_W_E_VAR=1               默认
+PC_W_I_VAR=2               默认
+PC_GLOBAL_INHIB=0.00002    默认
+VT_ACTIVE_DECAY=1.0
+PC_VT_INJECT_ENERGY=0.05
+PC_CELL_X_SIZE=0.25
+EXP_DELTA_PC_THRESHOLD=1.0
+PC_VT_RESTORE=0.04
+on_odo();                            
+excite();                            激发,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针
+inhibit();                           抑制,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针,和excite不同
+global_inhibit();                    全局抑制,让posecells_memory[i]-0.00002,但不能让posecells_memory[i]的值小于0
+normalise();                         正常化,让posecells_memory每个成员都变成了占总和的比例
+path_integration();                  整合路径,<读到此处搁浅...>
+();
+
+
+
 [main_em.cpp]
-on_odo();                          一点一点累加出坐标x,y
-ros::Time prev_time(0);            维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
-ros::Time prev_goal_update(0);     
+ros::Time prev_time(0);              维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
+ros::Time prev_goal_update(0);       用于存放视觉里程计的时间戳
 on_create_experience();            
 ();
 ();
@@ -61,6 +95,8 @@ on_create_experience();
 
 
 [experience_map.cpp]
+on_odo();                            一点一点累加出坐标x,y
+calculate_path_to_goal();            
 ();
 ();
 ();
@@ -70,6 +106,3 @@ on_create_experience();
 ();
 ();
 ();
-();
-
-

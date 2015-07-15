@@ -76,14 +76,14 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
     em->on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);  //一点一点累加出坐标x,y
   }
 
-  static ros::Time prev_goal_update(0);
+  static ros::Time prev_goal_update(0);  //用于存放视觉里程计的时间戳
 
   if (em->get_current_goal_id() >= 0)  //第一次进来为-1,第二次进来为 (int)goal_list.front()容器头成员的地址
   {
     // (prev_goal_update.toSec() == 0 || (odo->header.stamp - prev_goal_update).toSec() > 5)
     //em->calculate_path_to_goal(odo->header.stamp.toSec());
 
-    prev_goal_update = odo->header.stamp;
+    prev_goal_update = odo->header.stamp;  //存放视觉里程计的时间戳
 
     em->calculate_path_to_goal(odo->header.stamp.toSec());
 
@@ -133,7 +133,7 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 {
   ROS_DEBUG_STREAM("EM:action_callback{" << ros::Time::now() << "} action=" << action->action << " src=" << action->src_id << " dst=" << action->dest_id);
 
-  switch (action->action)  //ratslam_ros::TopologicalAction::CREATE_NODE的值为1,CREATE_EDGE为2,SET_NODE为3
+  switch (action->action)  //ratslam_ros::TopologicalAction action->action有四个值NO_ACTION的值为0,CREATE_NODE为1,CREATE_EDGE为2,SET_NODE为3.没有行动,创建节点,创建边缘,集合节点
   {
     case ratslam_ros::TopologicalAction::CREATE_NODE:
       em->on_create_experience(action->dest_id);  //返回值为经验地图的长度-1

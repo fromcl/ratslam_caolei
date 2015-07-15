@@ -48,20 +48,21 @@ bool use_graphics;
 
 using namespace ratslam;
 
-ratslam_ros::TopologicalAction pc_output;
+ratslam_ros::TopologicalAction pc_output;  //内含三常量四变量,无数组
 
+//ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, pc, &pub_pc), ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
 void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, ros::Publisher * pub_pc)
 {
   ROS_DEBUG_STREAM("PC:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z);
 
-  static ros::Time prev_time(0);
+  static ros::Time prev_time(0);  //从现在开始计时pc启动时间
 
   if (prev_time.toSec() > 0)
   {
-    double time_diff = (odo->header.stamp - prev_time).toSec();
+    double time_diff = (odo->header.stamp - prev_time).toSec();  //以秒为单位计算视觉里程计时间戳和PC程序启动时间差
 
     // Previous PoseCellExperience identifier.
-    pc_output.src_id = pc->get_current_exp_id();
+    pc_output.src_id = pc->get_current_exp_id();  //pc为posecell_network的构造函数指针,get_current_exp_id()直接返回current_exp
     
     // Apply odometry, excite/inhibit neural-net and integrate path.
     // FIXME: Broader odom message compatibility. Not linking correctly with wheel odom?

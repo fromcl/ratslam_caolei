@@ -78,51 +78,51 @@ void PosecellNetwork::pose_cell_builder()
 {
   int i, j;
 
-  PC_C_SIZE_TH = (2.0 * M_PI) / PC_DIM_TH;
+  PC_C_SIZE_TH = (2.0 * M_PI) / PC_DIM_TH;  //0.174533=3.1415926×2÷36
 
   // set the sizes
-  posecells_memory_size = sizeof(Posecell) * PC_DIM_XY * PC_DIM_XY * PC_DIM_TH;
-  posecells_elements = PC_DIM_XY * PC_DIM_XY * PC_DIM_TH;
+  posecells_memory_size = sizeof(Posecell) * PC_DIM_XY * PC_DIM_XY * PC_DIM_TH;  //(double长度)8*20*20*36=115200
+  posecells_elements = PC_DIM_XY * PC_DIM_XY * PC_DIM_TH;  //14400=20*20*36
 
   // allocate the memory
-  posecells_memory = (Posecell *)malloc((size_t)posecells_memory_size);
-  pca_new_memory = (Posecell *)malloc((size_t)posecells_memory_size);
+  posecells_memory = (Posecell *)malloc((size_t)posecells_memory_size);  //posecells_memory指向一个115200字节长度的内存块的double类型指针
+  pca_new_memory = (Posecell *)malloc((size_t)posecells_memory_size);  //pca_new_memory指向一个115200字节长度的内存块的double类型指针
 
   // zero all the memory
   memset(posecells_memory, 0, (size_t)posecells_memory_size);
   memset(pca_new_memory, 0, (size_t)posecells_memory_size);
 
   // allocate first level pointers
-  posecells = (Posecell ***)malloc(sizeof(Posecell**) * PC_DIM_TH);
-  pca_new = (Posecell ***)malloc(sizeof(Posecell**) * PC_DIM_TH);
+  posecells = (Posecell ***)malloc(sizeof(Posecell**) * PC_DIM_TH);  //8*36=288  因为malloc申请的地址是连续的,所以可以当三维数组用
+  pca_new = (Posecell ***)malloc(sizeof(Posecell**) * PC_DIM_TH);  //8*36=288
 
-  for (i = 0; i < PC_DIM_TH; i++)
+  for (i = 0; i < PC_DIM_TH; i++)  //做36次
   {
-    // allocate second level pointers
-    posecells[i] = (Posecell **)malloc(sizeof(Posecell*) * PC_DIM_XY);
-    pca_new[i] = (Posecell **)malloc(sizeof(Posecell*) * PC_DIM_XY);
+    // allocate second level pointers分配二级指针
+    posecells[i] = (Posecell **)malloc(sizeof(Posecell*) * PC_DIM_XY);  //posecells这个三级指针的第二级指向一个长度为160=(8*20)的双精度二级指针,第一级共有36个成员
+    pca_new[i] = (Posecell **)malloc(sizeof(Posecell*) * PC_DIM_XY);  //pca_new这个三级指针的第二级指向一个长度为160的双精度二级指针
 
-    for (j = 0; j < PC_DIM_XY; j++)
+    for (j = 0; j < PC_DIM_XY; j++)  //做20次
     {
-      // TRICKY! point second level pointers at already allocated memory
-      posecells[i][j] = &posecells_memory[(i * PC_DIM_XY + j) * PC_DIM_XY];
-      pca_new[i][j] = &pca_new_memory[(i * PC_DIM_XY + j) * PC_DIM_XY];
+      // TRICKY! point second level pointers at already allocated memory狡猾的!一级指针指向已分配的内存
+      posecells[i][j] = &posecells_memory[(i * PC_DIM_XY + j) * PC_DIM_XY];  //posecells[i][j]将指向posecells_memory的前14400个单元的20倍数的单元,共720个
+      pca_new[i][j] = &pca_new_memory[(i * PC_DIM_XY + j) * PC_DIM_XY];  //pca_new[i][j]将指向pca_new_memory的前14400个单元的20倍数的单元,共720个
     }
   }
 
   // for path integration
-  pca_new_rot_ptr = (Posecell **)malloc(sizeof(Posecell*) * (PC_DIM_XY + 2));
-  pca_new_rot_ptr2 = (Posecell **)malloc(sizeof(Posecell*) * (PC_DIM_XY + 2));
+  pca_new_rot_ptr = (Posecell **)malloc(sizeof(Posecell*) * (PC_DIM_XY + 2));  //双精度二级指针长度为8*22=176
+  pca_new_rot_ptr2 = (Posecell **)malloc(sizeof(Posecell*) * (PC_DIM_XY + 2));  //176
   for (i = 0; i < PC_DIM_XY + 2; i++)
   {
-    pca_new_rot_ptr[i] = &pca_new_memory[(i * (PC_DIM_XY + 2))];
+    pca_new_rot_ptr[i] = &pca_new_memory[(i * (PC_DIM_XY + 2))];  //
     pca_new_rot_ptr2[i] = &pca_new_memory[(PC_DIM_XY + 2) * (PC_DIM_XY + 2) + (i * (PC_DIM_XY + 2))];
   }
 
   posecells_plane_th = (Posecell *)malloc(sizeof(Posecell) * (PC_DIM_XY + 2) * (PC_DIM_XY + 2));
 
-  PC_W_EXCITE = (double *)malloc(sizeof(double) * PC_W_E_DIM * PC_W_E_DIM * PC_W_E_DIM);
-  PC_W_INHIB = (double *)malloc(sizeof(double) * PC_W_I_DIM * PC_W_I_DIM * PC_W_I_DIM);
+  PC_W_EXCITE = (double *)malloc(sizeof(double) * PC_W_E_DIM * PC_W_E_DIM * PC_W_E_DIM);  //2744=8*7*7*7
+  PC_W_INHIB = (double *)malloc(sizeof(double) * PC_W_I_DIM * PC_W_I_DIM * PC_W_I_DIM);  //1000=8*5*5*5
 
   posecells[(int)best_th][(int)best_y][(int)best_x] = 1;
 
@@ -132,7 +132,7 @@ void PosecellNetwork::pose_cell_builder()
 
   PC_E_XY_WRAP = (int *)malloc((PC_DIM_XY + PC_W_E_DIM - 1) * sizeof(int));
   PC_E_TH_WRAP = (int *)malloc((PC_DIM_TH + PC_W_E_DIM - 1) * sizeof(int));
-  PC_I_XY_WRAP = (int *)malloc((PC_DIM_XY + PC_W_I_DIM - 1) * sizeof(int));
+  PC_I_XY_WRAP = (int *)malloc((PC_DIM_XY + PC_W_I_DIM - 1) * sizeof(int));  //(5+20-1)*4=96
   PC_I_TH_WRAP = (int *)malloc((PC_DIM_TH + PC_W_I_DIM - 1) * sizeof(int));
 
   generate_wrap(PC_E_XY_WRAP, PC_DIM_XY - PC_W_E_DIM_HALF, PC_DIM_XY, 0, PC_DIM_XY, 0, PC_W_E_DIM_HALF);
@@ -251,7 +251,7 @@ bool PosecellNetwork::excite(void)
   int i, j, k;
 
   // set all of pca_new to 0
-  memset(pca_new_memory, 0, posecells_memory_size);
+  memset(pca_new_memory, 0, posecells_memory_size);  //将pca_new_memory双精度一级指针所指的115200个单元全部清0,posecells_memory_size=8*PC_DIM_XY*PC_DIM_XY*PC_DIM_TH=8*20*20*36=115200
 
   // loop in all three dimensions
   for (i = 0; i < PC_DIM_XY; i++)
@@ -262,15 +262,15 @@ bool PosecellNetwork::excite(void)
       {
         if (posecells[k][j][i] != 0)
         {
-          // spread the pose cell energy
-          pose_cell_excite_helper(i, j, k);
+          // spread the pose cell energy使用PDF格式传播能量
+          pose_cell_excite_helper(i, j, k);  //不好形容,直接看函数定义部分更好.非得形容的话:利用i,j,k作为角码将PC_E_XY_WRAP指针内以i,j角码为顶点(范围为7×7),将PC_E_TH_WRAP指针内以k角码为起点(范围为7)的位置的值作为pca_new[zw][yw][xw]的角码来值取得pca_new[zw][yw][xw]对应的位置,给这些位置加上posecells[i][j][k]与PC_W_EXCITE[excite_index++]这个双精度指向2744个内存单元的指针指向值的乘积
         }
       }
     }
   }
 
   //  pc.Posecells = pca_new;
-  memcpy(posecells_memory, pca_new_memory, posecells_memory_size);
+  memcpy(posecells_memory, pca_new_memory, posecells_memory_size);  //用内存拷贝函数将pca_new_memory的全部115200个单元内容考入posecells_memory所指的115200个双精度单元中
   return true;
 
 }
@@ -292,29 +292,29 @@ bool PosecellNetwork::inhibit(void)
         if (posecells[k][j][i] != 0)
         {
           // if there is energy in the current posecell,
-          // spread the energy
-          pose_cell_inhibit_helper(i, j, k);
+          // spread the energy如果存在能量在当前姿势细胞，传播的能量
+          pose_cell_inhibit_helper(i, j, k);  //不好形容,直接看函数定义部分更好.非得形容的话:利用i,j,k作为角码将PC_I_XY_WRAP指针内以i,j角码为顶点(范围为5×5),将PC_I_TH_WRAP指针内以k角码为起点(范围为5)的位置的值作为pca_new[zw][yw][xw]的角码来值取得pca_new[zw][yw][xw]对应的位置,给这些位置加上posecells[i][j][k]与PC_W_INHIB[inhib_index++]这个双精度指向1000个内存单元的指针指向值的乘积
         }
       }
     }
   }
 
-  for (i = 0; i < posecells_elements; i++)
+  for (i = 0; i < posecells_elements; i++)  //做14400次
   {
-    posecells_memory[i] -= pca_new_memory[i];
+    posecells_memory[i] -= pca_new_memory[i];  //为何减去一堆0?
   }
 
   return true;
 }
 
-bool PosecellNetwork::global_inhibit()
+bool PosecellNetwork::global_inhibit()  //posecells_memory[i]-0.00002,但不能让posecells_memory[i]的值小于0
 {
   int i;
-  for (i = 0; i < posecells_elements; i++)
+  for (i = 0; i < posecells_elements; i++)  //做14400次
   {
-    if (posecells_memory[i] >= PC_GLOBAL_INHIB)
+    if (posecells_memory[i] >= PC_GLOBAL_INHIB)  //PC_GLOBAL_INHIB=0.00002
     {
-      posecells_memory[i] = (posecells_memory[i] - PC_GLOBAL_INHIB);
+      posecells_memory[i] = (posecells_memory[i] - PC_GLOBAL_INHIB);  //posecells_memory为一个指向115200字节长度的内存块的double类型指针
     }
     else
     {
@@ -328,14 +328,14 @@ bool PosecellNetwork::normalise(void)
 {
   int i;
   double total = 0;
-  for (i = 0; i < posecells_elements; i++)
+  for (i = 0; i < posecells_elements; i++)  //做14400次
   {
     total += posecells_memory[i];
   }
 
-  assert(total > 0);
+  assert(total > 0);  //断言,若total不大于0,程序执行时会打印出错误详情
 
-  for (i = 0; i < posecells_elements; i++)
+  for (i = 0; i < posecells_elements; i++)  //让posecells_memory每个成员都变成了占总和的比例
   {
     posecells_memory[i] /= total;
     //assert(posecells_memory[i] >= 0);
@@ -346,13 +346,13 @@ bool PosecellNetwork::normalise(void)
 
 }
 
-bool PosecellNetwork::path_integration(double vtrans, double vrot)
+bool PosecellNetwork::path_integration(double vtrans, double vrot)  //传值为一个微分的路程和角度值
 {
   int dir_pc;
   double angle_to_add = 0;
 
   // scaling
-  vtrans /= PC_CELL_X_SIZE;
+  vtrans /= PC_CELL_X_SIZE;  //PC_CELL_X_SIZE=0.25,将微分路程放大四倍
 
   if (vtrans < 0)
   {
@@ -361,19 +361,19 @@ bool PosecellNetwork::path_integration(double vtrans, double vrot)
   }
   // % shift in each th given by the th
   // for dir_pc=1:PARAMS.PC_DIM_TH
-  for (dir_pc = 0; dir_pc < PC_DIM_TH; dir_pc++)
+  for (dir_pc = 0; dir_pc < PC_DIM_TH; dir_pc++)  //做36次
   {
 
     // % radians
     // dir = (dir_pc - 1) * pc.PC_C_SIZE_TH;
-    double dir = dir_pc * PC_C_SIZE_TH + angle_to_add;
+    double dir = dir_pc * PC_C_SIZE_TH + angle_to_add;  //PC_C_SIZE_TH=0.174533=3.1415926×2÷36
 
     double dir90, weight_sw, weight_se, weight_nw, weight_ne;
     int i, j;
 
     // % rotate the pc.Posecells instead of implementing for four quadrants
     // pca90 = rot90(pc.Posecells(:,:,dir_pc), floor(dir *2/pi));
-    rot90_square(posecells[dir_pc], PC_DIM_XY, (int)floor(dir * 2.0 / M_PI));
+    rot90_square(posecells[dir_pc], PC_DIM_XY, (int)floor(dir * 2.0 / M_PI));  //========================================================从此处停更
 
     // dir90 = dir - floor(dir *2/pi) * pi/2;
     dir90 = dir - floor(dir * 2 / M_PI) * M_PI / 2;
@@ -689,25 +689,26 @@ double PosecellNetwork::get_min_delta(double d1, double d2, double max)
   return min(absval, max - absval);
 }
 
+//                    pose_cell_excite_helper(i, j, k)
 bool PosecellNetwork::pose_cell_excite_helper(int x, int y, int z)
 {
   int xl, yl, zl, xw, yw, zw, excite_index = 0;
 
   // loop in all dimensions
-  for (zl = z; zl < z + PC_W_E_DIM; zl++)
+  for (zl = z; zl < z + PC_W_E_DIM; zl++)  //PC_W_E_DIM为7
   {
     for (yl = y; yl < y + PC_W_E_DIM; yl++)
     {
       for (xl = x; xl < x + PC_W_E_DIM; xl++)
       {
         // generate indices by wrapping where necessary
-        xw = PC_E_XY_WRAP[xl];
+        xw = PC_E_XY_WRAP[xl];  //一个整型指针
         yw = PC_E_XY_WRAP[yl];
         zw = PC_E_TH_WRAP[zl];
 
         // for every pose cell, multiply the current energy by
         // a pdf to spread the energy (PC_W_EXCITE is a 3d pdf)
-        pca_new[zw][yw][xw] += posecells[z][y][x] * PC_W_EXCITE[excite_index++];
+        pca_new[zw][yw][xw] += posecells[z][y][x] * PC_W_EXCITE[excite_index++];  //PC_W_EXCITE为一个双精度指向2744个内存单元的指针
       }
     }
   }
@@ -720,7 +721,7 @@ bool PosecellNetwork::pose_cell_inhibit_helper(int x, int y, int z)
   int xl, yl, zl, xw, yw, zw, inhib_index = 0;
 
   // loop through all the dimensions
-  for (zl = z; zl < z + PC_W_I_DIM; zl++)
+  for (zl = z; zl < z + PC_W_I_DIM; zl++)  //PC_W_I_DIM为5
   {
     for (yl = y; yl < y + PC_W_I_DIM; yl++)
     {
@@ -732,7 +733,7 @@ bool PosecellNetwork::pose_cell_inhibit_helper(int x, int y, int z)
         zw = PC_I_TH_WRAP[zl];
 
         // spread the energy using a pdf
-        pca_new[zw][yw][xw] += posecells[z][y][x] * PC_W_INHIB[inhib_index++];
+        pca_new[zw][yw][xw] += posecells[z][y][x] * PC_W_INHIB[inhib_index++];  //PC_W_INHIB为一个双精度指向1000个内存单元的指针
       }
     }
   }
@@ -786,9 +787,11 @@ void PosecellNetwork::circshift2d(double * array, double * array_buffer, int dim
   }
 }
 
+
+//                   rot90_square(posecells[dir_pc],   20,  (int)floor(dir * 2.0 / M_PI));  取整(0.174533 × dir_pc × 2 / 3.1415926)
 int PosecellNetwork::rot90_square(double ** array, int dim, int rot)
 {
-  double centre = (double)(dim - 1) / 2.0f;
+  double centre = (double)(dim - 1) / 2.0f;  //19/2=9.5
 
   double a, b, c, d;
 
@@ -801,7 +804,7 @@ int PosecellNetwork::rot90_square(double ** array, int dim, int rot)
     rot += 4;
   }
 
-  switch (rot % 4)
+  switch (rot % 4)  //rot的最大值可以达到4,只有第一次和最后一次才被case 0
   {
     case 0:
       return 1;
@@ -829,9 +832,9 @@ int PosecellNetwork::rot90_square(double ** array, int dim, int rot)
 
   if (rot % 2 == 1)
   {
-    for (j = 0; j < (int)(centre) + (1 - dim % 2); j++)
+    for (j = 0; j < (int)(centre) + (1 - dim % 2); j++)  //9.5+(1-0),做10次
     {
-      for (i = 0; i < (int)centre + 1; i++)
+      for (i = 0; i < (int)centre + 1; i++)  //做10次
       {
         id = i;
         jd = j;
@@ -897,7 +900,7 @@ void PosecellNetwork::create_experience()
   pcvt->exps.push_back(current_exp);
 }
 
-
+//enum PosecellAction {NO_ACTION = 0, CREATE_NODE, CREATE_EDGE, SET_NODE};  没有行动,创建节点,创建边缘,集合节点
 PosecellNetwork::PosecellAction PosecellNetwork::get_action()
 {
   PosecellExperience * experience;
@@ -994,17 +997,18 @@ PosecellNetwork::PosecellAction PosecellNetwork::get_action()
   return action;
 }
 
+//pc->                on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff);
 void PosecellNetwork::on_odo(double vtrans, double vrot, double time_diff_s)
 {
   vtrans = vtrans * time_diff_s;
-  vrot = vrot * time_diff_s;
+  vrot = vrot * time_diff_s;  //得到一个微分的路程和角度值
 
-  excite();
-  inhibit();
-  global_inhibit();
-  normalise();
-  path_integration(vtrans, vrot);
-  find_best();
+  excite();  //激发,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针
+  inhibit();  //抑制,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针,和excite不同
+  global_inhibit();  //全局抑制,让posecells_memory[i]-0.00002,但不能让posecells_memory[i]的值小于0
+  normalise();  //正常化,让posecells_memory每个成员都变成了占总和的比例
+  path_integration(vtrans, vrot);  //整合路径
+  find_best();  //最好找
   odo_update = true;
 }
 

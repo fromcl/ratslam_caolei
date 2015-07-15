@@ -70,7 +70,7 @@ ExperienceMap::~ExperienceMap()
 }
 
 // create a new experience for a given position 
-int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action->dest_id为int32型的
+int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action->dest_id为int32型的================================================================
 {
 
   experiences.resize(experiences.size() + 1);  //experiences为vector类型，长度变为了1,之前的experiences.reserve(10000);并没有给它分配10000的空间
@@ -84,21 +84,21 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action-
   }                                                                                            //
   else                                                                                         //  std::vector<unsigned int> links_from; //从这个经验地图链接
   {                                                                                            //  std::vector<unsigned int> links_to; //链接到本次经验地图
-    new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;                            //
+    new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;  //experiences[0].x_m+0    //
     new_exp->y_m = experiences[current_exp_id].y_m + accum_delta_y;                            //
     new_exp->th_rad = clip_rad_180(accum_delta_facing);  //config文件里无这个参数,第一次为90    //  //目标导航
   }                                                                                            //  double time_from_current_s;  //当前时间秒
   new_exp->id = experiences.size() - 1;  //id是从0开始计数                                      //  unsigned int goal_to_current, current_to_goal;  //目标到当前,当前到目标
                                                                                                //  template<typename Archive>
-  new_exp->goal_to_current = -1;                                                               //    void serialize(Archive& ar, const unsigned int version)
-  new_exp->current_to_goal = -1;                                                               //    {
+  new_exp->goal_to_current = -1;  //目标到当前为-1                                              //    void serialize(Archive& ar, const unsigned int version)
+  new_exp->current_to_goal = -1;  //当前到目标为-1                                              //    {
                                                                                                //      ar & id;
   // Link the current experience to the last.                                                  //      ar & x_m & y_m & th_rad;
   // FIXME: jumps back to last set pose with wheel odom?                                       //      ar & vt_id;
   if (experiences.size() != 1)                                                                 //      ar & links_from & links_to;
     on_create_link(get_current_id(), experiences.size() - 1, 0);                               //      ar & time_from_current_s;
                                                                                                //      ar & goal_to_current & current_to_goal;
-  return experiences.size() - 1;                                                               //    }
+  return experiences.size() - 1;  //可以认为返回值是当前经验地图的id号                           //    }
 }                                                                                              //};
 
 // update the current position of the experience map
@@ -297,14 +297,14 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)
   return DBL_MAX;
 }
 
-// return true if path to goal found
-bool ExperienceMap::calculate_path_to_goal(double time_s)
+// return true if path to goal found如果路径发现目标，返回true
+bool ExperienceMap::calculate_path_to_goal(double time_s)  //形参time_s为odo->header.stamp.toSec()
 {
 
   unsigned int id;
-  waypoint_exp_id = -1;
+  waypoint_exp_id = -1;  //路径点id
 
-  if (goal_list.size() == 0)
+  if (goal_list.size() == 0)  //goal_list为一个整型的双端容器(deque)
     return false;
 
   // check if we are within thres of the goal or timeout
@@ -465,11 +465,7 @@ void ExperienceMap::add_goal(double x_m, double y_m)
 
 double ExperienceMap::get_subgoal_m() const
 {
-  return (
-      waypoint_exp_id == -1 ? 0 :
-          sqrt(
-              (double)pow((experiences[waypoint_exp_id].x_m - experiences[current_exp_id].x_m), 2)
-                  + (double)pow((experiences[waypoint_exp_id].y_m - experiences[current_exp_id].y_m), 2)));
+  return (waypoint_exp_id == -1 ? 0 : sqrt((double)pow((experiences[waypoint_exp_id].x_m - experiences[current_exp_id].x_m), 2) + (double)pow((experiences[waypoint_exp_id].y_m - experiences[current_exp_id].y_m), 2)));
 }
 
 double ExperienceMap::get_subgoal_rad() const
