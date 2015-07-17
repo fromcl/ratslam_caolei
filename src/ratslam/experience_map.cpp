@@ -46,7 +46,7 @@ ExperienceMap::ExperienceMap(ptree settings)
   MAX_GOALS = 10;
 
   experiences.reserve(10000);
-  links.reserve(10000);
+  links.reserve(10000);  //有6个常成员的结构体列表
 
   current_exp_id = 0;
   prev_exp_id = 0;
@@ -54,7 +54,7 @@ ExperienceMap::ExperienceMap(ptree settings)
   goal_timeout_s = 0;
   goal_success = false;
 
-  accum_delta_facing = EXP_INITIAL_EM_DEG * M_PI/180;
+  accum_delta_facing = EXP_INITIAL_EM_DEG * M_PI/180;  //90×π÷180,为3.14/2
   accum_delta_x = 0;
   accum_delta_y = 0;
   accum_delta_time_s = 0;
@@ -69,8 +69,9 @@ ExperienceMap::~ExperienceMap()
   experiences.clear();
 }
 
-// create a new experience for a given position 
-int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action->dest_id为int32型的================================================================
+// create a new experience for a given position
+//                                                   exp_id为action->dest_id为int32型的
+int ExperienceMap::on_create_experience(unsigned int exp_id)  //为每张经验地图给定坐标值角度参数
 {
 
   experiences.resize(experiences.size() + 1);  //experiences为vector类型，长度变为了1,之前的experiences.reserve(10000);并没有给它分配10000的空间
@@ -84,7 +85,7 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action-
   }                                                                                            //
   else                                                                                         //  std::vector<unsigned int> links_from; //从这个经验地图链接
   {                                                                                            //  std::vector<unsigned int> links_to; //链接到本次经验地图
-    new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;  //experiences[0].x_m+0    //
+    new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;  //experiences[id].x_m+x   //
     new_exp->y_m = experiences[current_exp_id].y_m + accum_delta_y;                            //
     new_exp->th_rad = clip_rad_180(accum_delta_facing);  //config文件里无这个参数,第一次为90    //  //目标导航
   }                                                                                            //  double time_from_current_s;  //当前时间秒
@@ -95,7 +96,7 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action-
                                                                                                //      ar & id;
   // Link the current experience to the last.                                                  //      ar & x_m & y_m & th_rad;
   // FIXME: jumps back to last set pose with wheel odom?                                       //      ar & vt_id;
-  if (experiences.size() != 1)                                                                 //      ar & links_from & links_to;
+  if (experiences.size() != 1)  //<!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!>       //      ar & links_from & links_to;
     on_create_link(get_current_id(), experiences.size() - 1, 0);                               //      ar & time_from_current_s;
                                                                                                //      ar & goal_to_current & current_to_goal;
   return experiences.size() - 1;  //可以认为返回值是当前经验地图的id号                           //    }
@@ -103,19 +104,20 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //exp_id为action-
 
 // update the current position of the experience map
 // since the last experience
+//      on_odo(odo->twist.twist.linear.x, odo->twist.twist.angular.z, time_diff)
 void ExperienceMap::on_odo(double vtrans, double vrot, double time_diff_s)
 {
-  vtrans = vtrans * time_diff_s;
+  vtrans = vtrans * time_diff_s;  //速度乘以时间
   vrot = vrot * time_diff_s;
   accum_delta_facing = clip_rad_180(accum_delta_facing + vrot);  //accum_delta_facing为π/2
-  accum_delta_x = accum_delta_x + vtrans * cos(accum_delta_facing);  //一点一点累加出坐标x,y
+  accum_delta_x = accum_delta_x + vtrans * cos(accum_delta_facing);  //△坐标x,y
   accum_delta_y = accum_delta_y + vtrans * sin(accum_delta_facing);
   accum_delta_time_s += time_diff_s;
 }
 
 // iterate the experience map. Perform a graph relaxing algorithm to allow
 // the map to partially converge.
-bool ExperienceMap::iterate()
+bool ExperienceMap::iterate()  //迭代,以将经过多次的同一条路重合起来
 {
   int i;
   unsigned int link_id;
@@ -124,27 +126,27 @@ bool ExperienceMap::iterate()
   Link * link;
   double lx, ly, df;
 
-  for (i = 0; i < EXP_LOOPS; i++)
+  for (i = 0; i < EXP_LOOPS; i++)  //做20次
   {
     for (exp_id = 0; exp_id < experiences.size(); exp_id++)
     {
-      link_from = &experiences[exp_id];
+      link_from = &experiences[exp_id];  //每张经验地图都会被做一次
 
-      for (link_id = 0; link_id < link_from->links_from.size(); link_id++)
+      for (link_id = 0; link_id < link_from->links_from.size(); link_id++)  //links_from.size()为每张经验地图所对应的links id,长度应该为1
       {
-        //%             //% experience 0 has a link to experience 1
-        link = &links[link_from->links_from[link_id]];
-        link_to = &experiences[link->exp_to_id];
+        //%             //% experience 0 has a link to experience 1 由经验0链接到经验1
+        link = &links[link_from->links_from[link_id]];  //把links拷贝一份,下次来会冲掉
+        link_to = &experiences[link->exp_to_id];  //把当前对应的experiences拷贝一份给link_to
 
         //%             //% work out where e0 thinks e1 (x,y) should be based on the stored
         //%             //% link information
-        lx = link_from->x_m + link->d * cos(link_from->th_rad + link->heading_rad);
+        lx = link_from->x_m + link->d * cos(link_from->th_rad + link->heading_rad);  //累加出当前x,y的坐标值,应为link->heading_rad为0
         ly = link_from->y_m + link->d * sin(link_from->th_rad + link->heading_rad);
 
         //%             //% correct e0 and e1 (x,y) by equal but opposite amounts
         //%             //% a 0.5 correction parameter means that e0 and e1 will be fully
         //%             //% corrected based on e0's link information
-        link_from->x_m += (link_to->x_m - lx) * EXP_CORRECTION;
+        link_from->x_m += (link_to->x_m - lx) * EXP_CORRECTION;  //exp_correction为0.5
         link_from->y_m += (link_to->y_m - ly) * EXP_CORRECTION;
         link_to->x_m -= (link_to->x_m - lx) * EXP_CORRECTION;
         link_to->y_m -= (link_to->y_m - ly) * EXP_CORRECTION;
@@ -165,12 +167,13 @@ bool ExperienceMap::iterate()
   return true;
 }
 
-// create a link between two experiences
+// create a link between two experiences创建一个经验链接
+//                  on_create_link(get_current_id(), experiences.size() - 1, 0);   get_current_id()直接返回current_exp_id第一次进来为0
 bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_rad)
 {
   Experience * current_exp = &experiences[exp_id_from];
 
-  // check if the link already exists
+  // check if the link already exists检查连接是否已存在
   for (unsigned int i = 0; i < experiences[exp_id_from].links_from.size(); i++)
   {
     if (links[experiences[current_exp_id].links_from[i]].exp_to_id == exp_id_to)
@@ -186,22 +189,23 @@ bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_ra
   links.resize(links.size() + 1);
   Link * new_link = &(*(links.end() - 1));
 
-  new_link->exp_to_id = exp_id_to;
-  new_link->exp_from_id = exp_id_from;
-  new_link->d = sqrt(accum_delta_x * accum_delta_x + accum_delta_y * accum_delta_y);
-  new_link->heading_rad = get_signed_delta_rad(current_exp->th_rad, atan2(accum_delta_y, accum_delta_x));
-  new_link->facing_rad = get_signed_delta_rad(current_exp->th_rad, clip_rad_180(accum_delta_facing + rel_rad));
-  new_link->delta_time_s = accum_delta_time_s;
+  new_link->exp_to_id = exp_id_to;  //每个经验地图对应一个相同id的link
+  new_link->exp_from_id = exp_id_from;  //等同自己的id
+  new_link->d = sqrt(accum_delta_x * accum_delta_x + accum_delta_y * accum_delta_y);  //这里存了一个微分路程
+  new_link->heading_rad = get_signed_delta_rad(current_exp->th_rad, atan2(accum_delta_y, accum_delta_x));  //得到经验地图△theta和(△x,△y)点与x轴夹角之差,理论上相减为0
+  new_link->facing_rad = get_signed_delta_rad(current_exp->th_rad, clip_rad_180(accum_delta_facing + rel_rad));  //得到经验地图△theta和经验地图累加角度之差
+  new_link->delta_time_s = accum_delta_time_s;  //赋予时间
 
   // add this link to the 'to exp' so we can go backwards through the em
   experiences[exp_id_from].links_from.push_back(links.size() - 1);
-  experiences[exp_id_to].links_to.push_back(links.size() - 1);
+  experiences[exp_id_to].links_to.push_back(links.size() - 1);  //次两句告诉经验地图是和哪个links对应
 
   return true;
 }
 
-// change the current experience
-int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //new_exp_id为action->dest_id,rel_rad为0
+// change the current experience改变目前的经验
+//             em->on_set_experience(action->dest_id, 0);
+int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
 {
   if (new_exp_id > experiences.size() - 1)
     return 0;
@@ -211,13 +215,13 @@ int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //new_exp_
     return 1;
   }
 
-  prev_exp_id = current_exp_id;
-  current_exp_id = new_exp_id;
-  accum_delta_x = 0;
+  prev_exp_id = current_exp_id;  //交给上一个id
+  current_exp_id = new_exp_id;  //覆盖当前经验地图的id号
+  accum_delta_x = 0;  //将累加出来的x,y清0
   accum_delta_y = 0;
-  accum_delta_facing = clip_rad_180(experiences[current_exp_id].th_rad + rel_rad);
+  accum_delta_facing = clip_rad_180(experiences[current_exp_id].th_rad + rel_rad);  //给当前经验地图角度加0
 
-  relative_rad = rel_rad;
+  relative_rad = rel_rad;  //relative_rad相对弧度
 
   return 1;
 }
@@ -232,9 +236,7 @@ struct compare
 
 double exp_euclidean_m(Experience *exp1, Experience *exp2)  //返回微分路程  sqrt(△x²+△y²)
 {
-  return sqrt(
-      (double)((exp1->x_m - exp2->x_m) * (exp1->x_m - exp2->x_m) + (exp1->y_m - exp2->y_m) * (exp1->y_m - exp2->y_m)));
-
+  return sqrt((double)((exp1->x_m - exp2->x_m) * (exp1->x_m - exp2->x_m) + (exp1->y_m - exp2->y_m) * (exp1->y_m - exp2->y_m)));
 }
 
 double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)

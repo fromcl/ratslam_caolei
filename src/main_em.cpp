@@ -136,8 +136,8 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
   switch (action->action)  //ratslam_ros::TopologicalAction action->action有四个值NO_ACTION的值为0,CREATE_NODE为1,CREATE_EDGE为2,SET_NODE为3.没有行动,创建节点,创建边缘,集合节点
   {
     case ratslam_ros::TopologicalAction::CREATE_NODE:
-      em->on_create_experience(action->dest_id);  //返回值为经验地图的长度-1
-      em->on_set_experience(action->dest_id, 0);  //返回值为bool型,第一次进入返回为0
+      em->on_create_experience(action->dest_id);  //返回值为经验地图的长度-1,为每张经验地图给定坐标值角度参数
+      em->on_set_experience(action->dest_id, 0);  //返回值为bool型,当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
       break;
 
     case ratslam_ros::TopologicalAction::CREATE_EDGE:
