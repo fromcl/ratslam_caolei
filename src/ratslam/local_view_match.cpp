@@ -101,7 +101,7 @@ void LocalViewMatch::on_image(const unsigned char *view_rgb, bool greyscale, uns
   compare(vt_error, vt_match_id);  //一开始并未给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值,之后返回最小区别模板的区别值,和该模板的id号
   if (vt_error <= VT_MATCH_THRESHOLD)  //返回的比较值和匹配阀值相比较
   {
-    set_current_vt((int)vt_match_id);  //返回模板像素平均值相似附近模板匹配最小差距模板的vt.id
+    set_current_vt((int)vt_match_id);  //将模板附近最小像素平均值差距模板的vt.id号赋给current_vt
     cout << "VTM[" << setw(4) << get_current_vt() << "] " << endl;
     cout.flush();
   }
@@ -148,9 +148,9 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前�
     {//                  0                                                        60                      0+=5
       for (int x_block = IMAGE_VT_X_RANGE_MIN, x_block_count = 0; x_block_count < TEMPLATE_X_SIZE; x_block += x_block_size, x_block_count++)  //做60次
       {//                                    5
-        for (int x = x_block; x < (x_block + x_block_size); x++)  //做5次,x=0,5,10,15...
+        for (int x = x_block; x < (x_block + x_block_size); x++)  //做5次,x=0,5,10,15...300
         {//                                    4
-          for (int y = y_block; y < (y_block + y_block_size); y++)  //做4次,y=0,4,8,12...
+          for (int y = y_block; y < (y_block + y_block_size); y++)  //做4次,y=0,4,8,12...200
           {
             pos = (x + y * IMAGE_WIDTH);  //pos=x+400y
             current_view[data_next] += (double)(view_rgb[pos]);  //给current_view移位自加image->data的第(x+400y)位,每自加20次移位1次,共移位60次
@@ -249,7 +249,7 @@ void LocalViewMatch::convert_view_to_view_template(bool grayscale)  //从当前�
             clip_view_x_y(patch_x_clip, patch_y_clip);  //约束x,y的上下限
 
             patch_sum += ((current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE] - patch_mean) * (current_view_copy[patch_x_clip + patch_y_clip * TEMPLATE_X_SIZE] - patch_mean));
-            //patch_sum为方差*9
+            //patch_sum为标准差*9
           }
         }
 
@@ -347,7 +347,7 @@ void LocalViewMatch::compare(double &vt_err, unsigned int &vt_match_id)
         row_size = TEMPLATE_X_SIZE;  //60
         column_end_ptr = &data[0] + TEMPLATE_SIZE - offset;  //第一次column_end_ptr指向的数据第3000位,也就是角码[2999]处,之后逐次减1靠前指
         sub_row_size = TEMPLATE_X_SIZE - offset;  //column_start_ptr到column_end_ptr间距离60,59,58...
-
+//-----------------------------------第一次累加-----------------------------------
 	  // do from offset to end
 //                        &data[0]                             &vt.data[0] + offset                 &data[0]+TEMPLATE_SIZE-offset   60                          60
 	      for (column_row_ptr = column_start_ptr, template_row_ptr = template_start_ptr; column_row_ptr < column_end_ptr; column_row_ptr+=row_size, template_row_ptr+=row_size)  //做50次,60个为1组
@@ -361,7 +361,7 @@ void LocalViewMatch::compare(double &vt_err, unsigned int &vt_match_id)
 		      if (cdiff > mindiff)
 		        break;
 	      }
-
+//-----------------------------------第二次累加-----------------------------------
 	  // do from start to offset
 	      template_start_ptr = &vt.data[0];
 	      column_start_ptr = &data[0] + TEMPLATE_X_SIZE - offset;  //当前拍摄的模板从60为开始
