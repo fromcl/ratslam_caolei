@@ -66,8 +66,9 @@ using namespace ratslam;
 void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 {
   ROS_DEBUG_STREAM("EM:odo_callback{" << ros::Time::now() << "} seq=" << odo->header.seq << " v=" << odo->twist.twist.linear.x << " r=" << odo->twist.twist.angular.z);
+//ros::Time::now()为取到当前ROS时间
 
-  static ros::Time prev_time(0);
+  static ros::Time prev_time(0);  //创建一个时间,从0秒开始
 
   if (prev_time.toSec() > 0)
   {
@@ -85,7 +86,7 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 
     prev_goal_update = odo->header.stamp;  //存放视觉里程计的时间戳
 
-    em->calculate_path_to_goal(odo->header.stamp.toSec());
+    em->calculate_path_to_goal(odo->header.stamp.toSec());  //
 
     static nav_msgs::Path path;
     if (em->get_current_goal_id() >= 0)
@@ -151,9 +152,10 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 
   }
 
-  em->iterate();
+  em->iterate();  //迭代,以将经过多次的同一条路重合起来
 
-  pose_output.header.stamp = ros::Time::now();
+//此处发布了一个机器当前所在坐标的消息
+  pose_output.header.stamp = ros::Time::now();  //为ROS的当前时间
   pose_output.header.seq++;
   pose_output.header.frame_id = "1";
   pose_output.pose.position.x = em->get_experience(em->get_current_id())->x_m;
@@ -167,13 +169,25 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 
   static ros::Time prev_pub_time(0);
 
-  if (action->header.stamp - prev_pub_time > ros::Duration(30.0))
+//TopologicalMap消息中包含:
+//                         header
+//                         两个32位整型
+//                         一个TopologicalNode消息数组(为机器当前的x,y坐标消息,常用于里程计)
+//                         一个TopologicalEdge消息数组,包含:
+//                                                         duration消息,未找到
+//                                                         包含三个32位整型
+//                                                         一个geometry_msgs/Transform消息,内包含:
+//                                                                                               Transform里为两个消息,包含:
+//                                                                                                                          Vector3为3个64位浮点型x,y,z
+//                                                                                                                          Quaternion为4个64位浮点型
+
+  if (action->header.stamp - prev_pub_time > ros::Duration(30.0))  //不知是否会进来,若进来则会发布一个以TopologicalMap为消息的话题:topic_root+"/ExperienceMap/Map",无人订阅
   {
     prev_pub_time = action->header.stamp;
 
     em_map.header.stamp = ros::Time::now();
     em_map.header.seq++;
-    em_map.node_count = em->get_num_experiences();
+    em_map.node_count = em->get_num_experiences();  //返回经验地图的长度
     em_map.node.resize(em->get_num_experiences());
     for (int i = 0; i < em->get_num_experiences(); i++)
     {
@@ -202,6 +216,7 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
     }
     pub_em.publish(em_map);
   }
+
 
   em_marker.header.stamp = ros::Time::now();
   em_marker.header.seq++;
@@ -296,20 +311,18 @@ int main(int argc, char * argv[])
 //------------------------------全为发布-----------------------------------
   pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);
   pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);
-  pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);
+  pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);  //发布了一个机器当前所在坐标的消息
   pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);
 //------------------------------全为订阅-----------------------------------
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
-                                                                    ros::TransportHints().tcpNoDelay());
+                                                                    ros::TransportHints().tcpNoDelay());  //来自于vo
   ros::Subscriber sub_action = node.subscribe<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0, boost::bind(action_callback, _1, em),
-                                                                              ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+                                                                              ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //来自于pc
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
                                                                         ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
 //-------------------------------------------------------------------------
   // Distance server by Mr-Yellow 2015-04-25
-  ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(
-    topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em)
-  );
+  ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em));
   
 
 #ifdef HAVE_IRRLICHT

@@ -310,8 +310,7 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)  //形参time_s为odo-
     return false;
 
   // check if we are within thres of the goal or timeout
-  if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1
-      || ((goal_timeout_s != 0) && time_s > goal_timeout_s))
+  if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1 || ((goal_timeout_s != 0) && time_s > goal_timeout_s))
   {
     if (goal_timeout_s != 0 && time_s > goal_timeout_s)
     {

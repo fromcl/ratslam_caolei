@@ -17,6 +17,9 @@ convert_view_to_view_template();用的是哪种滤波?
 []
 
 ros::Time这个类型是干嘛的
+[ros::Time prev_time(0);  //创建一个时间,从0秒开始]
+
+ros::Time::now()的值为系统时间?ROS时间?还是从0开始?
 []
 
 成员除以平均值不知它的数学意义是什么
