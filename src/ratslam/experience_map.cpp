@@ -234,7 +234,7 @@ struct compare
   }
 };
 
-double exp_euclidean_m(Experience *exp1, Experience *exp2)  //返回微分路程  sqrt(△x²+△y²)
+double exp_euclidean_m(Experience *exp1, Experience *exp2)  //返回相距位移  sqrt(△x²+△y²)
 {
   return sqrt((double)((exp1->x_m - exp2->x_m) * (exp1->x_m - exp2->x_m) + (exp1->y_m - exp2->y_m) * (exp1->y_m - exp2->y_m)));
 }
@@ -300,7 +300,7 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)
 }
 
 // return true if path to goal found如果路径发现目标，返回true
-bool ExperienceMap::calculate_path_to_goal(double time_s)  //形参time_s为odo->header.stamp.toSec()
+bool ExperienceMap::calculate_path_to_goal(double time_s)  //形参time_s为odo->header.stamp.toSec()====================================================
 {
 
   unsigned int id;
@@ -438,20 +438,19 @@ bool ExperienceMap::get_goal_waypoint()
   return true;
 }
 
+//                  add_goal(pose->pose.position.x, pose->pose.position.y);
 void ExperienceMap::add_goal(double x_m, double y_m)
 {
   int min_id = -1;
   double min_dist = DBL_MAX;
   double dist;
-
+  //goal_list为一个整型的双端容器(deque)
   if (MAX_GOALS != 0 && goal_list.size() >= MAX_GOALS)  //MAX_GOALS等于10,goal_list.size()大于10就会return
     return;
 
-  for (unsigned int i = 0; i < experiences.size(); i++)
+  for (unsigned int i = 0; i < experiences.size(); i++)  //找到经验地图中距离目标点最小的位移距离的点，记录该距离和经验地图id号
   {
-    dist = sqrt(
-        (experiences[i].x_m - x_m) * (experiences[i].x_m - x_m)
-            + (experiences[i].y_m - y_m) * (experiences[i].y_m - y_m));
+    dist = sqrt((experiences[i].x_m - x_m) * (experiences[i].x_m - x_m) + (experiences[i].y_m - y_m) * (experiences[i].y_m - y_m));
     if (dist < min_dist)
     {
       min_id = i;
@@ -460,7 +459,7 @@ void ExperienceMap::add_goal(double x_m, double y_m)
   }
 
   if (min_dist < 0.1)
-    add_goal(min_id);
+    add_goal(min_id);  //另一个重载函数，等效于goal_list.push_back(id);若距离小于0.1米，就记录下这个地图id
 
 }
 

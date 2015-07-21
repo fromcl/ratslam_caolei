@@ -170,25 +170,45 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
   static ros::Time prev_pub_time(0);
 
 //TopologicalMap消息中包含:
-//                         header
-//                         两个32位整型
-//                         一个TopologicalNode消息数组(为机器当前的x,y坐标消息,常用于里程计)
-//                         一个TopologicalEdge消息数组,包含:
-//                                                         duration消息,未找到
-//                                                         包含三个32位整型
-//                                                         一个geometry_msgs/Transform消息,内包含:
-//                                                                                               Transform里为两个消息,包含:
-//                                                                                                                          Vector3为3个64位浮点型x,y,z
-//                                                                                                                          Quaternion为4个64位浮点型
+//                         Header header
+//                         uint32 node_count
+//                         uint32 edge_count
+//                         TopologicalNode[] node
+//                                               geometry_msgs/Pose pose
+//                                                                      Point position
+//                                                                                    float64 x
+//                                                                                    float64 y
+//                                                                                    float64 z
+//                                                                      Quaternion orientation
+//                                                                                            float64 x
+//                                                                                            float64 y
+//                                                                                            float64 z
+//                                                                                            float64 w
+//                         TopologicalEdge[] edge
+//                                               uint32 id
+//                                               uint32 source_id
+//                                               uint32 destination_id
+//                                               duration duration
+//                                                                未找到
+//                                               geometry_msgs/Transform transform
+//                                                                                Vector3 translation
+//                                                                                                   float64 x
+//                                                                                                   float64 y
+//                                                                                                   float64 z
+//                                                                                Quaternion rotation
+//                                                                                                   float64 x
+//                                                                                                   float64 y
+//                                                                                                   float64 z
+//                                                                                                   float64 w
 
-  if (action->header.stamp - prev_pub_time > ros::Duration(30.0))  //不知是否会进来,若进来则会发布一个以TopologicalMap为消息的话题:topic_root+"/ExperienceMap/Map",无人订阅
+  if (action->header.stamp - prev_pub_time > ros::Duration(30.0))  //当pc消息时间和action_callback时差大于30秒会进来.发布一个以TopologicalMap为消息的话题:topic_root+"/ExperienceMap/Map",无人订阅
   {
     prev_pub_time = action->header.stamp;
 
-    em_map.header.stamp = ros::Time::now();
+    em_map.header.stamp = ros::Time::now();  //TopologicalMap
     em_map.header.seq++;
-    em_map.node_count = em->get_num_experiences();  //返回经验地图的长度
-    em_map.node.resize(em->get_num_experiences());
+    em_map.node_count = em->get_num_experiences();  //返回经验地图的成员数量
+    em_map.node.resize(em->get_num_experiences());  //让消息数量也为成员数量
     for (int i = 0; i < em->get_num_experiences(); i++)
     {
       em_map.node[i].id = em->get_experience(i)->id;
@@ -220,21 +240,21 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 
   em_marker.header.stamp = ros::Time::now();
   em_marker.header.seq++;
-  em_marker.header.frame_id = "1";
-  em_marker.type = visualization_msgs::Marker::LINE_LIST;
-  em_marker.points.resize(em->get_num_links() * 2);
-  em_marker.action = visualization_msgs::Marker::ADD;
-  em_marker.scale.x = 0.01;
+  em_marker.header.frame_id = "1";  //rviz中用"1"?
+  em_marker.type = visualization_msgs::Marker::LINE_LIST;  //发送指定标记的形状为一个链
+  em_marker.points.resize(em->get_num_links() * 2);  //标记当前坐标值的消息长度为links.size的2倍
+  em_marker.action = visualization_msgs::Marker::ADD;  //ADD为创建或修改,visualization_msgs::Marker::DELETE为删除,DELETEALL删除所有标记的特定Rviz显示无论ID或名称空间
+  em_marker.scale.x = 0.01;  //指定标记的规模
   //em_marker.scale.y = 1;
   //em_marker.scale.z = 1;
-  em_marker.color.a = 1;
-  em_marker.ns = "em";
-  em_marker.id = 0;
-  em_marker.pose.orientation.x = 0;
+  em_marker.color.a = 1;  //标志的颜色,由（float）r、g、b、a四个成员决定，a=1表示完全不透明
+  em_marker.ns = "em";  //创建名称空间为em
+  em_marker.id = 0;  //名称空间(ns)和id用于创建一个唯一的名称标记。如果接收到消息标志与ns和id相同,新标志将取代旧的
+  em_marker.pose.orientation.x = 0;  //设置标记的姿势,用四元数设置了方向,位置为原点,朝向0度
   em_marker.pose.orientation.y = 0;
   em_marker.pose.orientation.z = 0;
   em_marker.pose.orientation.w = 1;
-  for (int i = 0; i < em->get_num_links(); i++)
+  for (int i = 0; i < em->get_num_links(); i++)  //做links.size次，设置标记当前的位置，不断刷新已跑过的位置和当前位置，*2是将路径显示缩放2倍
 
   {
     em_marker.points[i * 2].x = em->get_experience(em->get_link(i)->exp_from_id)->x_m;
@@ -245,7 +265,7 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
     em_marker.points[i * 2 + 1].z = 0;
   }
 
-  pub_em_markers.publish(em_marker);
+  pub_em_markers.publish(em_marker);  //打印
 
 #ifdef HAVE_IRRLICHT
   if (use_graphics)
@@ -255,6 +275,19 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
   }
 #endif
 }
+
+//PoseStamped消息为：
+//                  Header header
+//                  Pose pose
+//                           Point position
+//                                         float64 x
+//                                         float64 y
+//                                         float64 z
+//                           Quaternion orientation
+//                                                 float64 x
+//                                                 float64 y
+//                                                 float64 z
+//                                                 float64 w
 
 void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::ExperienceMap * em)
 {
@@ -272,8 +305,8 @@ void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::Ex
  * @param {ratslam::ExperienceMap} em
  * @return {bool}
 */
-bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res, ratslam::ExperienceMap * em) {
-//bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res) {
+bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res, ratslam::ExperienceMap * em)
+{
   res.distance = em->dijkstra_distance_between_experiences(req.id1, req.id2);
   ROS_INFO("request: x=%d, y=%d", (int)req.id1, (int)req.id2);
   ROS_INFO("sending back response: [%ld]", (long int)res.distance);
@@ -309,20 +342,20 @@ int main(int argc, char * argv[])
   ratslam::ExperienceMap * em = new ratslam::ExperienceMap(ratslam_settings);
  
 //------------------------------全为发布-----------------------------------
-  pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);
-  pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);
-  pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);  //发布了一个机器当前所在坐标的消息
-  pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);
+  pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);  //无人订阅
+  pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);  //无人订阅
+  pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);  //发布了一个机器当前所在坐标的消息，无人订阅
+  pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);  //无人订阅
 //------------------------------全为订阅-----------------------------------
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
                                                                     ros::TransportHints().tcpNoDelay());  //来自于vo
   ros::Subscriber sub_action = node.subscribe<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0, boost::bind(action_callback, _1, em),
                                                                               ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //来自于pc
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
-                                                                        ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+                                                                        ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //找不到消息发布者
 //-------------------------------------------------------------------------
   // Distance server by Mr-Yellow 2015-04-25
-  ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em));
+  ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em));  //无人订阅
   
 
 #ifdef HAVE_IRRLICHT
