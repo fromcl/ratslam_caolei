@@ -87,8 +87,8 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //为每张经验�
   {                                                                                            //  std::vector<unsigned int> links_to; //链接到本次经验地图
     new_exp->x_m = experiences[current_exp_id].x_m + accum_delta_x;  //experiences[id].x_m+x   //
     new_exp->y_m = experiences[current_exp_id].y_m + accum_delta_y;                            //
-    new_exp->th_rad = clip_rad_180(accum_delta_facing);  //config文件里无这个参数,第一次为90    //  //目标导航
-  }                                                                                            //  double time_from_current_s;  //当前时间秒
+    new_exp->th_rad = clip_rad_180(accum_delta_facing);  //第一次为π/2+里程计角度               //  //目标导航
+  }//                                       之后和里程计角度、相对弧度累加共同构成经验地图th_rad  //  double time_from_current_s;  //当前时间秒
   new_exp->id = experiences.size() - 1;  //id是从0开始计数                                      //  unsigned int goal_to_current, current_to_goal;  //目标到当前,当前到目标
                                                                                                //  template<typename Archive>
   new_exp->goal_to_current = -1;  //目标到当前为-1                                              //    void serialize(Archive& ar, const unsigned int version)
@@ -96,7 +96,7 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //为每张经验�
                                                                                                //      ar & id;
   // Link the current experience to the last.                                                  //      ar & x_m & y_m & th_rad;
   // FIXME: jumps back to last set pose with wheel odom?                                       //      ar & vt_id;
-  if (experiences.size() != 1)  //<!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!>       //      ar & links_from & links_to;
+  if (experiences.size() != 1)  //每个经验地图对应一个链接,当action为CREATE_NODE,CREATE_EDGE进入 //      ar & links_from & links_to;
     on_create_link(get_current_id(), experiences.size() - 1, 0);                               //      ar & time_from_current_s;
                                                                                                //      ar & goal_to_current & current_to_goal;
   return experiences.size() - 1;  //可以认为返回值是当前经验地图的id号                           //    }
@@ -108,11 +108,11 @@ int ExperienceMap::on_create_experience(unsigned int exp_id)  //为每张经验�
 void ExperienceMap::on_odo(double vtrans, double vrot, double time_diff_s)
 {
   vtrans = vtrans * time_diff_s;  //速度乘以时间
-  vrot = vrot * time_diff_s;
-  accum_delta_facing = clip_rad_180(accum_delta_facing + vrot);  //accum_delta_facing为π/2
-  accum_delta_x = accum_delta_x + vtrans * cos(accum_delta_facing);  //△坐标x,y
+  vrot = vrot * time_diff_s;  //角速度乘以时间
+  accum_delta_facing = clip_rad_180(accum_delta_facing + vrot);  //accum_delta_facing为π/2+里程计角度
+  accum_delta_x = accum_delta_x + vtrans * cos(accum_delta_facing);  //坐标x,y,会在pc的dest_id小于当前经验地图id时在on_set_experience里清零,on_set_experience每次进入action_callback都会被执行
   accum_delta_y = accum_delta_y + vtrans * sin(accum_delta_facing);
-  accum_delta_time_s += time_diff_s;
+  accum_delta_time_s += time_diff_s;  //累加时间,从进入vo开始算,不会被清零
 }
 
 // iterate the experience map. Perform a graph relaxing algorithm to allow
@@ -128,15 +128,15 @@ bool ExperienceMap::iterate()  //迭代,以将经过多次的同一条路重合�
 
   for (i = 0; i < EXP_LOOPS; i++)  //做20次
   {
-    for (exp_id = 0; exp_id < experiences.size(); exp_id++)
+    for (exp_id = 0; exp_id < experiences.size(); exp_id++)  //每张经验地图都会被做一次
     {
-      link_from = &experiences[exp_id];  //每张经验地图都会被做一次
+      link_from = &experiences[exp_id];  //link_from指向experiences
 
       for (link_id = 0; link_id < link_from->links_from.size(); link_id++)  //links_from.size()为每张经验地图所对应的links id,长度应该为1
       {
         //%             //% experience 0 has a link to experience 1 由经验0链接到经验1
-        link = &links[link_from->links_from[link_id]];  //把links拷贝一份,下次来会冲掉
-        link_to = &experiences[link->exp_to_id];  //把当前对应的experiences拷贝一份给link_to
+        link = &links[link_from->links_from[link_id]];  //link指向links
+        link_to = &experiences[link->exp_to_id];  //link_to指向experiences
 
         //%             //% work out where e0 thinks e1 (x,y) should be based on the stored
         //%             //% link information
@@ -153,7 +153,7 @@ bool ExperienceMap::iterate()  //迭代,以将经过多次的同一条路重合�
 
         //%             //% determine the angle between where e0 thinks e1's facing
         //%             //% should be based on the link information
-        df = get_signed_delta_rad(link_from->th_rad + link->facing_rad, link_to->th_rad);
+        df = get_signed_delta_rad(link_from->th_rad + link->facing_rad, link_to->th_rad);  //的到两角间最小差
 
         //%             //% correct e0 and e1 facing by equal but opposite amounts
         //%             //% a 0.5 correction parameter means that e0 and e1 will be fully
@@ -168,7 +168,8 @@ bool ExperienceMap::iterate()  //迭代,以将经过多次的同一条路重合�
 }
 
 // create a link between two experiences创建一个经验链接
-//                  on_create_link(get_current_id(), experiences.size() - 1, 0);   get_current_id()直接返回current_exp_id第一次进来为0
+//由on_create_experience传参进来为on_create_link(get_current_id(), experiences.size() - 1, 0);   get_current_id()直接返回current_exp_id第一次进来为0
+//              em->on_create_link(action->src_id, action->dest_id, action->relative_rad);
 bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_rad)
 {
   Experience * current_exp = &experiences[exp_id_from];
@@ -189,12 +190,12 @@ bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_ra
   links.resize(links.size() + 1);
   Link * new_link = &(*(links.end() - 1));
 
-  new_link->exp_to_id = exp_id_to;  //每个经验地图对应一个相同id的link
-  new_link->exp_from_id = exp_id_from;  //等同自己的id
-  new_link->d = sqrt(accum_delta_x * accum_delta_x + accum_delta_y * accum_delta_y);  //这里存了一个微分路程
-  new_link->heading_rad = get_signed_delta_rad(current_exp->th_rad, atan2(accum_delta_y, accum_delta_x));  //得到经验地图△theta和(△x,△y)点与x轴夹角之差,理论上相减为0
+  new_link->exp_to_id = exp_id_to;  //每个经验地图对应一个相同id的links
+  new_link->exp_from_id = exp_id_from;  //等同经验地图的id
+  new_link->d = sqrt(accum_delta_x * accum_delta_x + accum_delta_y * accum_delta_y);  //这里存了一个整体位移
+  new_link->heading_rad = get_signed_delta_rad(current_exp->th_rad, atan2(accum_delta_y, accum_delta_x));  //得到经验地图△theta和(x,y)点与x轴夹角之差
   new_link->facing_rad = get_signed_delta_rad(current_exp->th_rad, clip_rad_180(accum_delta_facing + rel_rad));  //得到经验地图△theta和经验地图累加角度之差
-  new_link->delta_time_s = accum_delta_time_s;  //赋予时间
+  new_link->delta_time_s = accum_delta_time_s;  //赋予累加时间,从进入vo开始算
 
   // add this link to the 'to exp' so we can go backwards through the em
   experiences[exp_id_from].links_from.push_back(links.size() - 1);
@@ -215,13 +216,15 @@ int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //当dest_
     return 1;
   }
 
+//猜测:此处可能是pc发生交汇,节点id直接跳回在之前的某一个点上,让current_exp_id等于dest_id使经验地图回到那个点上,但朝向的角另作维护
+
   prev_exp_id = current_exp_id;  //交给上一个id
   current_exp_id = new_exp_id;  //覆盖当前经验地图的id号
   accum_delta_x = 0;  //将累加出来的x,y清0
   accum_delta_y = 0;
-  accum_delta_facing = clip_rad_180(experiences[current_exp_id].th_rad + rel_rad);  //给当前经验地图角度加0
+  accum_delta_facing = clip_rad_180(experiences[current_exp_id].th_rad + rel_rad);  //给当前经验地图角度加0,也可能action->relative_rad,只有当dest_id小于经验id时相对弧度才有作用
 
-  relative_rad = rel_rad;  //relative_rad相对弧度
+  relative_rad = rel_rad;  //relative_rad相对弧度,该参数并未被使用
 
   return 1;
 }
@@ -239,7 +242,7 @@ double exp_euclidean_m(Experience *exp1, Experience *exp2)  //返回相距位移
   return sqrt((double)((exp1->x_m - exp2->x_m) * (exp1->x_m - exp2->x_m) + (exp1->y_m - exp2->y_m) * (exp1->y_m - exp2->y_m)));
 }
 
-double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)
+double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  //迪杰斯特拉算法计算两点间距
 {
   double link_time_s;
   unsigned int id;
@@ -300,7 +303,7 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)
 }
 
 // return true if path to goal found如果路径发现目标，返回true
-bool ExperienceMap::calculate_path_to_goal(double time_s)  //形参time_s为odo->header.stamp.toSec()====================================================
+bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,形参time_s为里程计时间戳
 {
 
   unsigned int id;
@@ -322,7 +325,7 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)  //形参time_s为odo-
       goal_success = true;
       //cout << "Goal reached ... yay!" << endl;
     }
-    goal_list.pop_front();
+    goal_list.pop_front();  //将deque容器头成员删除
     goal_timeout_s = 0;
 
     for (id = 0; id < experiences.size(); id++)
@@ -439,7 +442,7 @@ bool ExperienceMap::get_goal_waypoint()
 }
 
 //                  add_goal(pose->pose.position.x, pose->pose.position.y);
-void ExperienceMap::add_goal(double x_m, double y_m)
+void ExperienceMap::add_goal(double x_m, double y_m)  //未发布目标点就不会进入,屏蔽掉距离小于0.1米的目标点,并记录那些点和哪张图近
 {
   int min_id = -1;
   double min_dist = DBL_MAX;
@@ -448,7 +451,7 @@ void ExperienceMap::add_goal(double x_m, double y_m)
   if (MAX_GOALS != 0 && goal_list.size() >= MAX_GOALS)  //MAX_GOALS等于10,goal_list.size()大于10就会return
     return;
 
-  for (unsigned int i = 0; i < experiences.size(); i++)  //找到经验地图中距离目标点最小的位移距离的点，记录该距离和经验地图id号
+  for (unsigned int i = 0; i < experiences.size(); i++)  //找到经验地图中距离目标点最小的位移距离的点，记录该距离和该点id号
   {
     dist = sqrt((experiences[i].x_m - x_m) * (experiences[i].x_m - x_m) + (experiences[i].y_m - y_m) * (experiences[i].y_m - y_m));
     if (dist < min_dist)
