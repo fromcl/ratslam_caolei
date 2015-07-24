@@ -289,7 +289,7 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 //                                                 float64 z
 //                                                 float64 w
 
-void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::ExperienceMap * em)
+void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::ExperienceMap * em)  //订阅了一个目标点消息,和机器人位置消息用的同一消息格式
 {
   ROS_DEBUG_STREAM("EM:set_goal_pose_callback x=" << pose->pose.position.x << " y=" << pose->pose.position.y);
   em->add_goal(pose->pose.position.x, pose->pose.position.y);
@@ -352,7 +352,7 @@ int main(int argc, char * argv[])
   ros::Subscriber sub_action = node.subscribe<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0, boost::bind(action_callback, _1, em),
                                                                               ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //来自于pc
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
-                                                                        ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //找不到消息发布者
+                                                                        ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //找不到消息发布者,订阅了一个目标点消息,和机器人位置消息用的同一消息格式
 //-------------------------------------------------------------------------
   // Distance server by Mr-Yellow 2015-04-25
   ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em));  //无人订阅

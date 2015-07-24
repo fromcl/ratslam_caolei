@@ -231,7 +231,7 @@ int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //当dest_
 
 struct compare
 {
-  bool operator()(const Experience *exp1, const Experience *exp2)
+  bool operator()(const Experience *exp1, const Experience *exp2)  //被用做谓词,time_from_current_s小的优先级高
   {
     return exp1->time_from_current_s > exp2->time_from_current_s;
   }
@@ -247,21 +247,20 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  /
   double link_time_s;
   unsigned int id;
 
-  std::priority_queue<Experience*, std::vector<Experience*>, compare> exp_heap;
+  std::priority_queue<Experience*, std::vector<Experience*>, compare> exp_heap;  //用vector创建一个Experience类型的优先级队列,谓词compare表示time_from_current_s小的优先级高,排在队首被先取出
 
-  for (id = 0; id < experiences.size(); id++)
+  for (id = 0; id < experiences.size(); id++)  //先初始化队列,所有成员优先级一致,顺序未变
   {
     experiences[id].time_from_current_s = DBL_MAX;
     exp_heap.push(&experiences[id]);
   }
 
-  experiences[id1].time_from_current_s = 0;
-  goal_path_final_exp_id = current_exp_id;
+  experiences[id1].time_from_current_s = 0;  //将第一个id的地图成员放在队列末尾
+  goal_path_final_exp_id = current_exp_id;  //取出当前位置所在经验地图的id
 
-  while (!exp_heap.empty())
+  while (!exp_heap.empty())  //检查是否为空队列,有成员则返回0
   {
-    std::make_heap(const_cast<Experience**>(&exp_heap.top()),
-                   const_cast<Experience**>(&exp_heap.top()) + exp_heap.size(), compare());
+    std::make_heap(const_cast<Experience**>(&exp_heap.top()), const_cast<Experience**>(&exp_heap.top()) + exp_heap.size(), compare());
 
     Experience* exp = exp_heap.top();
     if (exp->time_from_current_s == DBL_MAX)
@@ -442,12 +441,12 @@ bool ExperienceMap::get_goal_waypoint()
 }
 
 //                  add_goal(pose->pose.position.x, pose->pose.position.y);
-void ExperienceMap::add_goal(double x_m, double y_m)  //未发布目标点就不会进入,屏蔽掉距离小于0.1米的目标点,并记录那些点和哪张图近
+void ExperienceMap::add_goal(double x_m, double y_m)  //未发布目标点就不会进入,记录下目标点和经验地图的某个点距离小于0.1米的目标点
 {
   int min_id = -1;
   double min_dist = DBL_MAX;
   double dist;
-  //goal_list为一个整型的双端容器(deque)
+  //goal_list为一个整型的双端容器(deque),未指定过长度
   if (MAX_GOALS != 0 && goal_list.size() >= MAX_GOALS)  //MAX_GOALS等于10,goal_list.size()大于10就会return
     return;
 
@@ -462,7 +461,7 @@ void ExperienceMap::add_goal(double x_m, double y_m)  //未发布目标点就不
   }
 
   if (min_dist < 0.1)
-    add_goal(min_id);  //另一个重载函数，等效于goal_list.push_back(id);若距离小于0.1米，就记录下这个地图id
+    add_goal(min_id);  //另一个重载函数，等效于goal_list.push_back(id);若目标点和经验地图的某个点小于0.1米，就记录下这个地图id,最多记录10个
 
 }
 
