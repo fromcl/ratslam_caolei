@@ -88,6 +88,20 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 
     em->calculate_path_to_goal(odo->header.stamp.toSec());  //计算目标路径,利用迪杰斯特拉算法
 
+//Path消息包括:
+//             Header header
+//             geometry_msgs/PoseStamped[] poses
+//                                              Header header
+//                                              Pose pose
+//                                                       Point position
+//                                                                     float64 x
+//                                                                     float64 y
+//                                                                     float64 z
+//                                                       Quaternion orientation
+//                                                                             float64 x
+//                                                                             float64 y
+//                                                                             float64 z
+//                                                                             float64 w
     static nav_msgs::Path path;
     if (em->get_current_goal_id() >= 0)
     {
@@ -130,22 +144,33 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
   prev_time = odo->header.stamp;  //维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
 }
 
+//TopologicalAction消息中包括:
+//                            uint32 CREATE_NODE=1
+//                            uint32 CREATE_EDGE=2
+//                            uint32 SET_NODE=3
+//                            Header header
+//                            uint32 action
+//                            uint32 src_id
+//                            uint32 dest_id
+//                            float64 relative_rad
+
 void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::ExperienceMap *em)
 {
   ROS_DEBUG_STREAM("EM:action_callback{" << ros::Time::now() << "} action=" << action->action << " src=" << action->src_id << " dst=" << action->dest_id);
 
   switch (action->action)  //ratslam_ros::TopologicalAction action->action有四个值NO_ACTION的值为0,CREATE_NODE为1,CREATE_EDGE为2,SET_NODE为3.没有行动,创建节点,创建边缘,重置节点
   {
+  //第一次和走未探索区域时进来,新建一个经验地图和链接
     case ratslam_ros::TopologicalAction::CREATE_NODE:
       em->on_create_experience(action->dest_id);  //返回值为经验地图的长度-1,为每张经验地图给定id、坐标值、角度参数,并当经验地图长度不为1时创建一个经验链接，链接里存放整体位移,两种角度差,累加时间等一些中间参数
       em->on_set_experience(action->dest_id, 0);  //返回值为bool型,当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
       break;
-
+  //应该调用在发生了交会的那个点上,只是建立一个链接而不建立经验地图
     case ratslam_ros::TopologicalAction::CREATE_EDGE:
       em->on_create_link(action->src_id, action->dest_id, action->relative_rad);  //创建一个经验链接,内存放整体位移,两种角度差,累加时间等一些中间参数
       em->on_set_experience(action->dest_id, action->relative_rad);
       break;
-
+  //发生完了交会,走已经走过的路,不需要再建立经验地图和链接
     case ratslam_ros::TopologicalAction::SET_NODE:
       em->on_set_experience(action->dest_id, action->relative_rad);
       break;
@@ -344,7 +369,7 @@ int main(int argc, char * argv[])
 //------------------------------全为发布-----------------------------------
   pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);  //无人订阅
   pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);  //无人订阅
-  pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);  //发布了一个机器当前所在坐标的消息，无人订阅
+  pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);  //无人订阅，发布了一个机器当前所在坐标的消息
   pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);  //无人订阅
 //------------------------------全为订阅-----------------------------------
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),

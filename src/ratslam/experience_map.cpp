@@ -206,7 +206,7 @@ bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_ra
 
 // change the current experience改变目前的经验
 //             em->on_set_experience(action->dest_id, 0);
-int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
+int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值
 {
   if (new_exp_id > experiences.size() - 1)
     return 0;
@@ -217,7 +217,7 @@ int ExperienceMap::on_set_experience(int new_exp_id, double rel_rad)  //当dest_
   }
 
 //猜测:此处可能是pc发生交汇,节点id直接跳回在之前的某一个点上,让current_exp_id等于dest_id使经验地图回到那个点上,但朝向的角另作维护
-
+//以下几步应该每次都做
   prev_exp_id = current_exp_id;  //交给上一个id
   current_exp_id = new_exp_id;  //覆盖当前经验地图的id号
   accum_delta_x = 0;  //将累加出来的x,y清0
@@ -280,7 +280,7 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  /
       }
     }
 
-    for (id = 0; id < exp->links_from.size(); id++)  //相当于将上一个for再做了一次
+    for (id = 0; id < exp->links_from.size(); id++)  //相当于将上一个for再做了一次,links_from的值可能和links_to不一样
     {
       Link *link = &links[exp->links_from[id]];
       link_time_s = exp->time_from_current_s + link->delta_time_s;

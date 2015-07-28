@@ -59,10 +59,10 @@ PosecellNetwork::PosecellNetwork(ptree settings)
 
   get_setting_from_ptree(PC_VT_RESTORE, settings, "pc_vt_restore", 0.05);
 
-  // the starting position within the posecell network
-  best_x = floor((double)PC_DIM_XY / 2.0);
-  best_y = floor((double)PC_DIM_XY / 2.0);
-  best_th = floor((double)PC_DIM_TH / 2.0);
+  // the starting position within the posecell network在posecell网络内的起始位置
+  best_x = floor((double)PC_DIM_XY / 2.0);  //floor为取整,best_x = 10
+  best_y = floor((double)PC_DIM_XY / 2.0);  //best_y = 10
+  best_th = floor((double)PC_DIM_TH / 2.0);  //best_th = 18
 
   current_exp = 0;
   current_vt = 0;
@@ -900,7 +900,7 @@ void PosecellNetwork::create_experience()
   pcvt->exps.push_back(current_exp);
 }
 
-//enum PosecellAction {NO_ACTION = 0, CREATE_NODE, CREATE_EDGE, SET_NODE};  没有行动,创建节点,创建边缘,集合节点
+//enum PosecellAction {NO_ACTION = 0, CREATE_NODE, CREATE_EDGE, SET_NODE};  没有行动,创建节点,创建边缘,重置节点
 PosecellNetwork::PosecellAction PosecellNetwork::get_action()
 {
   PosecellExperience * experience;

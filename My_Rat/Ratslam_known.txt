@@ -95,7 +95,7 @@ on_odo();                                    一点一点累加出坐标x,y
 on_create_experience();                      返回值为经验地图的长度-1,为每张经验地图给定id、坐标值、角度参数,并当经验地图长度不为1时创建一个经验链接，链接里存放整体位移,两种角度差,累加时间等一些中间参数
 get_current_id();                            直接返回current_exp_id,当前经验地图id
 experiences[];                               为经验地图,为一个结构体类型的容器
-on_set_experience();                         返回值为bool型,当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
+on_set_experience();                         返回值为bool型,当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值
 on_create_link();                            创建一个经验链接,内存放整体位移,两种角度差,累加时间等一些中间参数
 iterate();                                   迭代,以将经过多次的同一条路重合起来
 exp_euclidean_m();                           返回相距位移  sqrt(△x²+△y²)

@@ -48,7 +48,17 @@ bool use_graphics;
 
 using namespace ratslam;
 
-ratslam_ros::TopologicalAction pc_output;  //内含三常量四变量,无数组
+
+//TopologicalAction消息中包括:
+//                            uint32 CREATE_NODE=1
+//                            uint32 CREATE_EDGE=2
+//                            uint32 SET_NODE=3
+//                            Header header
+//                            uint32 action
+//                            uint32 src_id
+//                            uint32 dest_id
+//                            float64 relative_rad
+ratslam_ros::TopologicalAction pc_output;
 
 //ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, pc, &pub_pc), ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
 void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::PosecellNetwork *pc, ros::Publisher * pub_pc)
@@ -136,12 +146,12 @@ int main(int argc, char * argv[])
 
 
   ratslam::PosecellNetwork * pc = new ratslam::PosecellNetwork(ratslam_settings);
-  ros::Publisher pub_pc = node.advertise<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0);
+  ros::Publisher pub_pc = node.advertise<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0);  //之后被em订阅
 
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, pc, &pub_pc), ros::VoidConstPtr(),
-                                                                    ros::TransportHints().tcpNoDelay());
+                                                                    ros::TransportHints().tcpNoDelay());  //由vo发布
   ros::Subscriber sub_template = node.subscribe<ratslam_ros::ViewTemplate>(topic_root + "/LocalView/Template", 0, boost::bind(template_callback, _1, pc, &pub_pc),
-                                                                           ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+                                                                           ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //由lv发布
 #ifdef HAVE_IRRLICHT
   boost::property_tree::ptree draw_settings;
   get_setting_child(draw_settings, settings, "draw", true);
