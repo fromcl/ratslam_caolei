@@ -199,7 +199,7 @@ bool ExperienceMap::on_create_link(int exp_id_from, int exp_id_to, double rel_ra
 
   // add this link to the 'to exp' so we can go backwards through the em
   experiences[exp_id_from].links_from.push_back(links.size() - 1);
-  experiences[exp_id_to].links_to.push_back(links.size() - 1);  //次两句告诉经验地图是和哪个links对应
+  experiences[exp_id_to].links_to.push_back(links.size() - 1);  //此两句告诉经验地图是和哪个links对应
 
   return true;
 }
@@ -242,7 +242,7 @@ double exp_euclidean_m(Experience *exp1, Experience *exp2)  //返回相距位移
   return sqrt((double)((exp1->x_m - exp2->x_m) * (exp1->x_m - exp2->x_m) + (exp1->y_m - exp2->y_m) * (exp1->y_m - exp2->y_m)));
 }
 
-double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  //迪杰斯特拉算法计算两点间距
+double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  //迪杰斯特拉算法计算并返回id1到id2间最短路经所用总时间
 {
   double link_time_s;
   unsigned int id;
@@ -255,32 +255,32 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  /
     exp_heap.push(&experiences[id]);
   }
 
-  experiences[id1].time_from_current_s = 0;  //将第一个id的地图成员放在队列末尾
+  experiences[id1].time_from_current_s = 0;  //将第一个id的地图成员放在队首
   goal_path_final_exp_id = current_exp_id;  //取出当前位置所在经验地图的id
 
-  while (!exp_heap.empty())  //检查是否为空队列,有成员则返回0
+  while (!exp_heap.empty())  //检查是否为空队列,有成员则返回0,将所有成员遍历一遍
   {
-    std::make_heap(const_cast<Experience**>(&exp_heap.top()), const_cast<Experience**>(&exp_heap.top()) + exp_heap.size(), compare());
+    std::make_heap(const_cast<Experience**>(&exp_heap.top()), const_cast<Experience**>(&exp_heap.top()) + exp_heap.size(), compare());  //?????????
 
-    Experience* exp = exp_heap.top();
-    if (exp->time_from_current_s == DBL_MAX)
+    Experience* exp = exp_heap.top();  //返回队首数据不删除
+    if (exp->time_from_current_s == DBL_MAX)  //判断队首成员是否为id1
     {
       return DBL_MAX;
     }
-    exp_heap.pop();
+    exp_heap.pop();  //删除队首成员
 
-    for (id = 0; id < exp->links_to.size(); id++)
+    for (id = 0; id < exp->links_to.size(); id++)  //做1次,links_to只push了一次,值为(links.size() - 1)
     {
-      Link *link = &links[exp->links_to[id]];
-      link_time_s = exp->time_from_current_s + link->delta_time_s;
+      Link *link = &links[exp->links_to[id]];  //得到对应位置的links
+      link_time_s = exp->time_from_current_s + link->delta_time_s;  //将所有过程时间累加,link_time_s来记录这条路经所用总时间(DBL_MAX+delta_time_s应该等于delta_time_s)
       if (link_time_s < experiences[link->exp_from_id].time_from_current_s)
       {
         experiences[link->exp_from_id].time_from_current_s = link_time_s;
-        experiences[link->exp_from_id].goal_to_current = exp->id;
+        experiences[link->exp_from_id].goal_to_current = exp->id;  //将到达每张图所用的时间告诉每张图,并赋予起始点下一个id给这些图
       }
     }
 
-    for (id = 0; id < exp->links_from.size(); id++)
+    for (id = 0; id < exp->links_from.size(); id++)  //相当于将上一个for再做了一次
     {
       Link *link = &links[exp->links_from[id]];
       link_time_s = exp->time_from_current_s + link->delta_time_s;
@@ -291,30 +291,30 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  /
       }
     }
 
-    if (exp->id == id2)
+    if (exp->id == id2)  //直到遍历到id2返回这条路经所用总时间
     {
       return exp->time_from_current_s;
     }
   }
 
-  // DB added to stop warning
+  // DB added to stop warning添加停止警告
   return DBL_MAX;
 }
 
 // return true if path to goal found如果路径发现目标，返回true
-bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,形参time_s为里程计时间戳
+bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,利用迪杰斯特拉算法
 {
 
   unsigned int id;
   waypoint_exp_id = -1;  //路径点id
 
-  if (goal_list.size() == 0)  //goal_list为一个整型的双端容器(deque)
+  if (goal_list.size() == 0)  //goal_list为一个int类型的双端容器(deque)
     return false;
 
-  // check if we are within thres of the goal or timeout
-  if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1 || ((goal_timeout_s != 0) && time_s > goal_timeout_s))
+  // check if we are within thres of the goal or timeout检查我们的目标在阀值之内或超时
+  if (exp_euclidean_m(&experiences[current_exp_id], &experiences[goal_list[0]]) < 0.1 || ((goal_timeout_s != 0) && time_s > goal_timeout_s))  //如若超时或离目标很近,就将目标删除
   {
-    if (goal_timeout_s != 0 && time_s > goal_timeout_s)
+    if (goal_timeout_s != 0 && time_s > goal_timeout_s)  //goal_timeout_s初值为0
     {
       //cout << "Timed out reaching goal ... sigh" << endl;
       goal_success = false;
@@ -327,45 +327,45 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,
     goal_list.pop_front();  //将deque容器头成员删除
     goal_timeout_s = 0;
 
-    for (id = 0; id < experiences.size(); id++)
+    for (id = 0; id < experiences.size(); id++)  //迪杰斯特拉算法中做了同样的事情
     {
       experiences[id].time_from_current_s = DBL_MAX;
     }
   }
 
-  if (goal_list.size() == 0)
+  if (goal_list.size() == 0)  //如果没有目标了,就退出
     return false;
 
   if (goal_timeout_s == 0)
   {
-    double link_time_s;
+    double link_time_s;  //和迪杰斯特拉子函数中的值无任何关系
 
-    std::priority_queue<Experience*, std::vector<Experience*>, compare> exp_heap;
+    std::priority_queue<Experience*, std::vector<Experience*>, compare> exp_heap;  //用vector创建一个Experience类型的优先级队列,谓词compare表示time_from_current_s小的优先级高,排在队首被先取出
 
-    for (id = 0; id < experiences.size(); id++)
+    for (id = 0; id < experiences.size(); id++)  //先初始化队列,所有成员优先级一致,顺序未变
     {
       experiences[id].time_from_current_s = DBL_MAX;
       exp_heap.push(&experiences[id]);
     }
 
-    experiences[current_exp_id].time_from_current_s = 0;
-    goal_path_final_exp_id = current_exp_id;
+    experiences[current_exp_id].time_from_current_s = 0;  //使当前经验地图拍到队首
+    goal_path_final_exp_id = current_exp_id;  //取出当前位置所在经验地图的id
 
     std::make_heap(const_cast<Experience**>(&exp_heap.top()),
                    const_cast<Experience**>(&exp_heap.top()) + exp_heap.size(), compare());
 
     while (!exp_heap.empty())
     {
-      Experience* exp = exp_heap.top();
-      if (exp->time_from_current_s == DBL_MAX)
+      Experience* exp = exp_heap.top();  //返回队首数据不删除
+      if (exp->time_from_current_s == DBL_MAX)  //若之前赋0失败,则将
       {
         cout << "Unable to find path to goal" << endl;
-        goal_list.pop_front();
+        goal_list.pop_front();  //删除容器首数据
         return false;
       }
-      exp_heap.pop();
+      exp_heap.pop();  //删除队首成员
 
-      for (id = 0; id < exp->links_to.size(); id++)
+      for (id = 0; id < exp->links_to.size(); id++)  //做1次,links_to只push了一次,值为(links.size() - 1),以下类似于迪杰斯特拉算法
       {
         Link *link = &links[exp->links_to[id]];
         link_time_s = exp->time_from_current_s + link->delta_time_s;
@@ -387,24 +387,24 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,
         }
       }
 
-      if (!exp_heap.empty())
+      if (!exp_heap.empty())  //猜测为整理出一条路经出来
         std::make_heap(const_cast<Experience**>(&exp_heap.top()),
                        const_cast<Experience**>(&exp_heap.top()) + exp_heap.size(), compare());
 
     }
 
     // now do the current to goal links
-    unsigned int trace_exp_id = goal_list[0];
+    unsigned int trace_exp_id = goal_list[0];  //使用第一个目标点id
     while (trace_exp_id != current_exp_id)
     {
-      experiences[experiences[trace_exp_id].goal_to_current].current_to_goal = trace_exp_id;
+      experiences[experiences[trace_exp_id].goal_to_current].current_to_goal = trace_exp_id;  //将起始点的current_to_goal赋值为第一个目标点id
       trace_exp_id = experiences[trace_exp_id].goal_to_current;
     }
 
     // means we need a new time out
     if (goal_timeout_s == 0)
     {
-      goal_timeout_s = time_s + experiences[goal_list[0]].time_from_current_s;
+      goal_timeout_s = time_s + experiences[goal_list[0]].time_from_current_s;  //将超时时间定为time_s(为里程计时间戳)+到目标点的总时间
       cout << "Goal timeout in " << goal_timeout_s - time_s << "s" << endl;
     }
   }
@@ -412,7 +412,7 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,
   return true;
 }
 
-bool ExperienceMap::get_goal_waypoint()
+bool ExperienceMap::get_goal_waypoint()  //未被调用,排斥掉临近点后为waypoint_exp_id赋值目标点id,若目标点就在临近点,则为waypoint_exp_id赋值当前点id
 {
   if (goal_list.size() == 0)
     return false;
@@ -423,15 +423,15 @@ bool ExperienceMap::get_goal_waypoint()
   unsigned int trace_exp_id = goal_list[0];
   Experience *robot_exp = &experiences[current_exp_id];
 
-  while (trace_exp_id != goal_path_final_exp_id)
+  while (trace_exp_id != goal_path_final_exp_id)  //若当前id不等于第一个目标点id
   {
-    dist = exp_euclidean_m(&experiences[trace_exp_id], robot_exp);
-    waypoint_exp_id = experiences[trace_exp_id].id;
-    if (dist < 0.2)
+    dist = exp_euclidean_m(&experiences[trace_exp_id], robot_exp);  //得到目标id和当前id的位移
+    waypoint_exp_id = experiences[trace_exp_id].id;  //取目标点id
+    if (dist < 0.2)  //若离的很近,不做处理
     {
       break;
     }
-    trace_exp_id = experiences[trace_exp_id].goal_to_current;
+    trace_exp_id = experiences[trace_exp_id].goal_to_current;  //之前在迪杰斯特拉中被用于存放起始点id
   }
 
   if (waypoint_exp_id == -1)
@@ -465,20 +465,20 @@ void ExperienceMap::add_goal(double x_m, double y_m)  //未发布目标点就不
 
 }
 
-double ExperienceMap::get_subgoal_m() const
+double ExperienceMap::get_subgoal_m() const  //未被调用,waypoint_exp_id不为-1时返回路径点到当前点的位移
 {
-  return (waypoint_exp_id == -1 ? 0 : sqrt((double)pow((experiences[waypoint_exp_id].x_m - experiences[current_exp_id].x_m), 2) + (double)pow((experiences[waypoint_exp_id].y_m - experiences[current_exp_id].y_m), 2)));
+  return (waypoint_exp_id == -1 ? 0 : sqrt((double)pow((experiences[waypoint_exp_id].x_m - experiences[current_exp_id].x_m), 2) + (double)pow((experiences[waypoint_exp_id].y_m - experiences[current_exp_id].y_m), 2)));  //路径点到当前点的位移
 }
 
-double ExperienceMap::get_subgoal_rad() const
+double ExperienceMap::get_subgoal_rad() const  //未被调用,waypoint_exp_id不为-1时返回当前朝向角和atan2(△x,△y)之间最小差
 {
   if (waypoint_exp_id == -1)
     return 0;
   else
   {
-    double curr_goal_rad = atan2((double)(experiences[waypoint_exp_id].y_m - experiences[current_exp_id].y_m),
-                                 (double)(experiences[waypoint_exp_id].x_m - experiences[current_exp_id].x_m));
-    return (get_signed_delta_rad(experiences[current_exp_id].th_rad, curr_goal_rad));
+    double curr_goal_rad = atan2((double)(experiences[waypoint_exp_id].y_m - experiences[current_exp_id].y_m), (double)(experiences[waypoint_exp_id].x_m - experiences[current_exp_id].x_m));
+    //得到经验地图点和路径点之间(△x,△y)与x轴夹角之差
+    return (get_signed_delta_rad(experiences[current_exp_id].th_rad, curr_goal_rad));  //得到当前朝向角和atan2(△x,△y)之间最小差
   }
 }
 

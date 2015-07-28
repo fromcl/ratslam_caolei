@@ -86,7 +86,7 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 
     prev_goal_update = odo->header.stamp;  //存放视觉里程计的时间戳
 
-    em->calculate_path_to_goal(odo->header.stamp.toSec());  //计算目标路径
+    em->calculate_path_to_goal(odo->header.stamp.toSec());  //计算目标路径,利用迪杰斯特拉算法
 
     static nav_msgs::Path path;
     if (em->get_current_goal_id() >= 0)
@@ -292,7 +292,7 @@ void action_callback(ratslam_ros::TopologicalActionConstPtr action, ratslam::Exp
 void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::ExperienceMap * em)  //订阅了一个目标点消息,和机器人位置消息用的同一消息格式
 {
   ROS_DEBUG_STREAM("EM:set_goal_pose_callback x=" << pose->pose.position.x << " y=" << pose->pose.position.y);
-  em->add_goal(pose->pose.position.x, pose->pose.position.y);
+  em->add_goal(pose->pose.position.x, pose->pose.position.y);  //记录下目标点和经验地图的某个点距离小于0.1米的目标点
 }
 
 /**
@@ -307,7 +307,7 @@ void set_goal_pose_callback(geometry_msgs::PoseStampedConstPtr pose, ratslam::Ex
 */
 bool get_distance_callback(ratslam_ros::GetDistance::Request  &req, ratslam_ros::GetDistance::Response &res, ratslam::ExperienceMap * em)
 {
-  res.distance = em->dijkstra_distance_between_experiences(req.id1, req.id2);
+  res.distance = em->dijkstra_distance_between_experiences(req.id1, req.id2);  //迪杰斯特拉算法计算并返回id1到id2间最短路经所用总时间
   ROS_INFO("request: x=%d, y=%d", (int)req.id1, (int)req.id2);
   ROS_INFO("sending back response: [%ld]", (long int)res.distance);
   return true;
@@ -350,9 +350,9 @@ int main(int argc, char * argv[])
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
                                                                     ros::TransportHints().tcpNoDelay());  //来自于vo
   ros::Subscriber sub_action = node.subscribe<ratslam_ros::TopologicalAction>(topic_root + "/PoseCell/TopologicalAction", 0, boost::bind(action_callback, _1, em),
-                                                                              ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //来自于pc
+                                                                    ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //来自于pc
   ros::Subscriber sub_goal = node.subscribe<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/SetGoalPose", 0, boost::bind(set_goal_pose_callback, _1, em),
-                                                                        ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //找不到消息发布者,订阅了一个目标点消息,和机器人位置消息用的同一消息格式
+                                                                    ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());  //找不到消息发布者,订阅了一个目标点消息,和机器人位置消息用的同一消息格式
 //-------------------------------------------------------------------------
   // Distance server by Mr-Yellow 2015-04-25
   ros::ServiceServer service = node.advertiseService<ratslam_ros::GetDistance::Request, ratslam_ros::GetDistance::Response>(topic_root + "/ExperienceMap/GetDistance", boost::bind(get_distance_callback, _1, _2, em));  //无人订阅

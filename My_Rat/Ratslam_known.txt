@@ -1,52 +1,52 @@
 [utils.h]
-get_setting_from_ptree();            给var(第一个形参)引用的常量或变量赋ini文件各个参数具体值
-get_setting_child();                 给child(第一个形参)引用的boost::property_tree::ptree对象赋ini文件[visual_odometry]参数值,最后又get_setting_from_ptree()给各个常量或变量
-clip_rad_360();                      将形参控制在±2π之间
-clip_rad_180();                      将形参控制在±π之间
-get_signed_delta_rad();              得到角1至角2的最短角度(弧度)值
+get_setting_from_ptree();                    给var(第一个形参)引用的常量或变量赋ini文件各个参数具体值
+get_setting_child();                         给child(第一个形参)引用的boost::property_tree::ptree对象赋ini文件[visual_odometry]参数值,最后又get_setting_from_ptree()给各个常量或变量
+clip_rad_360();                              将形参控制在±2π之间
+clip_rad_180();                              将形参控制在±π之间
+get_signed_delta_rad();                      得到角1至角2的最短角度(弧度)值
 
 
 
 [main_vo.cpp]
-read_ini();                          读取config文件夹中的ini文件参数,全部放入settings
-ImageTransport;                      NodeHandle被image_transport后用来订阅图片
+read_ini();                                  读取config文件夹中的ini文件参数,全部放入settings
+ImageTransport;                              NodeHandle被image_transport后用来订阅图片
 
 
 
 [visual_odometry.cpp]
-vtrans_profile.resize();             以图片横向像素点个数来确定容器大小400,该容器存放用来计算linear.x的数据
-vtrans_prev_profile.resize();        用于拷贝vtrans_profile数据二次利用
-vrot_profile.resize();               以图片横向像素点个数来确定容器大小400,该容器存放用来计算angular.z的数据
-vrot_prev_profile.resize();          用于拷贝vrot_profile数据二次利用
-on_image();                          只是用来调用convert_view_to_view_template();和visual_odo();两个子函数的,并为它们提供一些中间变量
-convert_view_to_view_template();     利用一种滤波转换视图模板
-current_view[i];                     等价于vtrans_profile
-visual_odo();                        dummy这个假值屏蔽掉计算错误的linear.x和angular.z,因为那几个常量可能不一样而导致vtrans和vrot两个数组不一样,只有速度数组可得到正确的里程计速度值,角速度数组得到里程计角速度值
+vtrans_profile.resize();                     以图片横向像素点个数来确定容器大小400,该容器存放用来计算linear.x的数据
+vtrans_prev_profile.resize();                用于拷贝vtrans_profile数据二次利用
+vrot_profile.resize();                       以图片横向像素点个数来确定容器大小400,该容器存放用来计算angular.z的数据
+vrot_prev_profile.resize();                  用于拷贝vrot_profile数据二次利用
+on_image();                                  只是用来调用convert_view_to_view_template();和visual_odo();两个子函数的,并为它们提供一些中间变量
+convert_view_to_view_template();             利用一种滤波转换视图模板
+current_view[i];                             等价于vtrans_profile
+visual_odo();                                dummy这个假值屏蔽掉计算错误的linear.x和angular.z,因为那几个常量可能不一样而导致vtrans和vrot两个数组不一样,只有速度数组可得到正确的里程计速度值,角速度数组得到里程计角速度值
 
 
 
 [main_lv.cpp]
-LocalViewScene();                    LocalViewScene为LocalViewScene的构造函数
+LocalViewScene();                            LocalViewScene为LocalViewScene的构造函数
 
 
 
 [local_view_match.cpp]
-templates.reserve(10000);            用于存放一个一个视图模板
-current_view.resize(TEMPLATE_SIZE);  长度3000，经过标准化处理的视觉模板数据部分（即template->data）由这里产生
-on_image();                          整体来说,是从templates中根据阀值来建立模板,再把模板附近的图片吸附在模板上
-convert_view_to_view_template();     从当前视图到视图模板，将current_view[i]经过一种标准化处理
-get_current_vt();                    返回值为current_vt，初值为0
-compare();                           一开始并未给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值,之后返回最小区别模板的区别值,和该模板的id号
-set_current_vt((int)vt_match_id);    返回模板像素平均值相似附近模板匹配最小差距模板的vt.id
-create_template();                   返回当前模板的id号
-clip_view_x_y();                     约束x,y的上下限
-convert_view_to_view_template();     从当前视图到视图模板，将current_view[i]经过一种标准化处理，再将视觉模板一个一个装入template容器中
-create_template();                   创建视觉模板将current_view添加到模板结构体中
+templates.reserve(10000);                    用于存放一个一个视图模板
+current_view.resize(TEMPLATE_SIZE);          长度3000，经过标准化处理的视觉模板数据部分（即template->data）由这里产生
+on_image();                                  整体来说,是从templates中根据阀值来建立模板,再把模板附近的图片吸附在模板上
+convert_view_to_view_template();             从当前视图到视图模板，将current_view[i]经过一种标准化处理
+get_current_vt();                            返回值为current_vt，初值为0
+compare();                                   一开始并未给vt_error，vt_match_id赋值，第一次没模板时直接返回vt_error双精度浮点数最大值,之后返回最小区别模板的区别值,和该模板的id号
+set_current_vt((int)vt_match_id);            返回模板像素平均值相似附近模板匹配最小差距模板的vt.id
+create_template();                           返回当前模板的id号
+clip_view_x_y();                             约束x,y的上下限
+convert_view_to_view_template();             从当前视图到视图模板，将current_view[i]经过一种标准化处理，再将视觉模板一个一个装入template容器中
+create_template();                           创建视觉模板将current_view添加到模板结构体中
 
 
 
 [main_pc.cpp]
-get_current_exp_id();                直接返回current_exp
+get_current_exp_id();                        直接返回current_exp
 ();
 ();
 ();
@@ -71,37 +71,37 @@ PC_CELL_X_SIZE=0.25
 EXP_DELTA_PC_THRESHOLD=1.0
 PC_VT_RESTORE=0.04
 on_odo();                            
-excite();                            激发,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针
-inhibit();                           抑制,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针,和excite不同
-global_inhibit();                    全局抑制,让posecells_memory[i]-0.00002,但不能让posecells_memory[i]的值小于0
-normalise();                         正常化,让posecells_memory每个成员都变成了占总和的比例
-path_integration();                  整合路径,<水太深了,,,读到此处搁浅...>
+excite();                                    激发,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针
+inhibit();                                   抑制,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针,和excite不同
+global_inhibit();                            全局抑制,让posecells_memory[i]-0.00002,但不能让posecells_memory[i]的值小于0
+normalise();                                 正常化,让posecells_memory每个成员都变成了占总和的比例
+path_integration();                          整合路径,<水太深了,,,读到此处搁浅...>
 ();
 
 
 
 [main_em.cpp]
-ros::Time prev_time(0);              维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
-ros::Time prev_goal_update(0);       用于存放视觉里程计的时间戳
-get_current_goal_id();               没有目标发布者时为-1,有目标发布者为(int)goal_list.front()容器头成员的地址
-calculate_path_to_goal();            计算目标路径,形参time_s为里程计时间戳
-pub_pose.publish();                  此处发布了一个机器当前所在坐标的消息
-pub_em_markers.publish();            用于形象显示当前状态
-set_goal_pose_callback();            用于导航的设置目标点
-();
-();
+ros::Time prev_time(0);                      维护一个时间为里程计的上一个时间戳,用来计算△t再计算x,y
+ros::Time prev_goal_update(0);               用于存放视觉里程计的时间戳
+get_current_goal_id();                       没有目标发布者时为-1,有目标发布者为(int)goal_list.front()容器头成员的地址
+pub_pose.publish();                          此处发布了一个机器当前所在坐标的消息
+pub_em_markers.publish();                    用于形象显示当前状态
+set_goal_pose_callback();                    用于导航的设置目标点
 
 
 
 [experience_map.cpp]
-on_odo();                            一点一点累加出坐标x,y
-on_create_experience();              返回值为经验地图的长度-1,为每张经验地图给定id、坐标值、角度参数,并当经验地图长度不为1时创建一个经验链接，链接里存放整体位移,两种角度差,累加时间等一些中间参数
-get_current_id();                    直接返回current_exp_id,当前经验地图id
-experiences[];                       为经验地图,为一个结构体类型的容器
-on_set_experience();                 返回值为bool型,当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
-on_create_link();                    创建一个经验链接,内存放整体位移,两种角度差,累加时间等一些中间参数
-iterate();                           迭代,以将经过多次的同一条路重合起来
-exp_euclidean_m();                   返回相距位移  sqrt(△x²+△y²)
-add_goal();                          未发布目标点就不会进入,记录下目标点和经验地图的某个点距离小于0.1米的目标点
-();
-();
+on_odo();                                    一点一点累加出坐标x,y
+on_create_experience();                      返回值为经验地图的长度-1,为每张经验地图给定id、坐标值、角度参数,并当经验地图长度不为1时创建一个经验链接，链接里存放整体位移,两种角度差,累加时间等一些中间参数
+get_current_id();                            直接返回current_exp_id,当前经验地图id
+experiences[];                               为经验地图,为一个结构体类型的容器
+on_set_experience();                         返回值为bool型,当dest_id小于经验地图id时,就将累加出来的坐标值清空但保留角度值(猜测目的应该让pc赶上来)
+on_create_link();                            创建一个经验链接,内存放整体位移,两种角度差,累加时间等一些中间参数
+iterate();                                   迭代,以将经过多次的同一条路重合起来
+exp_euclidean_m();                           返回相距位移  sqrt(△x²+△y²)
+add_goal();                                  未发布目标点就不会进入,记录下目标点和经验地图的某个点距离小于0.1米的目标点
+dijkstra_distance_between_experiences();     未被调用,迪杰斯特拉算法计算并返回id1到id2间最短路经所用总时间
+calculate_path_to_goal();                    计算目标路径,利用迪杰斯特拉算法
+get_goal_waypoint();                         未被调用,排斥掉临近点后为waypoint_exp_id赋值目标点id,若目标点就在临近点,则为waypoint_exp_id赋值当前点id
+get_subgoal_m();                             未被调用,waypoint_exp_id不为-1时返回路径点到当前点的位移
+get_subgoal_rad();                           未被调用,waypoint_exp_id不为-1时返回当前朝向角和atan2(△x,△y)之间最小差
