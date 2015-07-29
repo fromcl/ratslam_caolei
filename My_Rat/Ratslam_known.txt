@@ -70,6 +70,14 @@ PC_VT_INJECT_ENERGY=0.05
 PC_CELL_X_SIZE=0.25
 EXP_DELTA_PC_THRESHOLD=1.0
 PC_VT_RESTORE=0.04
+
+int长度为:4
+char长度为:1
+double长度为:8
+int指针长度为:8
+char指针长度为:8
+double指针长度为:8
+
 on_odo();                            
 excite();                                    激发,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针
 inhibit();                                   抑制,当posecells[k][j][i]不等于0时去操作一下pca_new[zw][yw][xw]三级指针,和excite不同
