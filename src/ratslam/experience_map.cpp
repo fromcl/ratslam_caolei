@@ -276,7 +276,7 @@ double ExperienceMap::dijkstra_distance_between_experiences(int id1, int id2)  /
       if (link_time_s < experiences[link->exp_from_id].time_from_current_s)
       {
         experiences[link->exp_from_id].time_from_current_s = link_time_s;
-        experiences[link->exp_from_id].goal_to_current = exp->id;  //将到达每张图所用的时间告诉每张图,并赋予起始点下一个id给这些图
+        experiences[link->exp_from_id].goal_to_current = exp->id;  //将到达每张图所用的时间告诉每张图,并赋予起始点下一个id给这些图,起始点每次while都会变
       }
     }
 
@@ -412,7 +412,7 @@ bool ExperienceMap::calculate_path_to_goal(double time_s)  //计算目标路径,
   return true;
 }
 
-bool ExperienceMap::get_goal_waypoint()  //未被调用,排斥掉临近点后为waypoint_exp_id赋值目标点id,若目标点就在临近点,则为waypoint_exp_id赋值当前点id
+bool ExperienceMap::get_goal_waypoint()  //排斥掉临近点后为waypoint_exp_id赋值目标点id,若目标点就在临近点,则为waypoint_exp_id赋值当前点id
 {
   if (goal_list.size() == 0)
     return false;

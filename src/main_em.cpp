@@ -103,9 +103,9 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
 //                                                                             float64 z
 //                                                                             float64 w
     static nav_msgs::Path path;
-    if (em->get_current_goal_id() >= 0)
+    if (em->get_current_goal_id() >= 0)  //再次确认,有目标发布者为(int)goal_list.front()容器头成员的地址
     {
-      em->get_goal_waypoint();
+      em->get_goal_waypoint();  //排斥掉临近点后为waypoint_exp_id赋值目标点id,若目标点就在临近点,则为waypoint_exp_id赋值当前点id
 
       static geometry_msgs::PoseStamped pose;
       path.header.stamp = ros::Time::now();
@@ -114,18 +114,18 @@ void odo_callback(nav_msgs::OdometryConstPtr odo, ratslam::ExperienceMap *em)
       pose.header.seq = 0;
       pose.header.frame_id = "1";
       path.poses.clear();
-      unsigned int trace_exp_id = em->get_goals()[0];
-      while (trace_exp_id != em->get_goal_path_final_exp())
+      unsigned int trace_exp_id = em->get_goals()[0];  //返回指向第一个指向目标点的指针,trace_exp_id为第一个目标点id
+      while (trace_exp_id != em->get_goal_path_final_exp())  //若当前id不等于第一个目标点id
       {
-        pose.pose.position.x = em->get_experience(trace_exp_id)->x_m;
+        pose.pose.position.x = em->get_experience(trace_exp_id)->x_m;  //get_experience返回指向当前经验地图的指针
         pose.pose.position.y = em->get_experience(trace_exp_id)->y_m;
-        path.poses.push_back(pose);
+        path.poses.push_back(pose);  //将路径话题中的poses数组
         pose.header.seq++;
 
-        trace_exp_id = em->get_experience(trace_exp_id)->goal_to_current;
+        trace_exp_id = em->get_experience(trace_exp_id)->goal_to_current;  //赋予 动态 起始点id
       }
 
-      pub_goal_path.publish(path);
+      pub_goal_path.publish(path);  //发布这条路经
 
       path.header.seq++;
 
@@ -365,12 +365,12 @@ int main(int argc, char * argv[])
   ros::NodeHandle node;
 
   ratslam::ExperienceMap * em = new ratslam::ExperienceMap(ratslam_settings);
- 
+
 //------------------------------全为发布-----------------------------------
   pub_em = node.advertise<ratslam_ros::TopologicalMap>(topic_root + "/ExperienceMap/Map", 1);  //无人订阅
-  pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);  //无人订阅
+  pub_em_markers = node.advertise<visualization_msgs::Marker>(topic_root + "/ExperienceMap/MapMarker", 1);  //无人订阅,用于构建rviz图形
   pub_pose = node.advertise<geometry_msgs::PoseStamped>(topic_root + "/ExperienceMap/RobotPose", 1);  //无人订阅，发布了一个机器当前所在坐标的消息
-  pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);  //无人订阅
+  pub_goal_path = node.advertise<nav_msgs::Path>(topic_root + "/ExperienceMap/PathToGoal", 1);  //无人订阅,发布了一个迪杰斯特拉算法计算出的实时路径
 //------------------------------全为订阅-----------------------------------
   ros::Subscriber sub_odometry = node.subscribe<nav_msgs::Odometry>(topic_root + "/odom", 0, boost::bind(odo_callback, _1, em), ros::VoidConstPtr(),
                                                                     ros::TransportHints().tcpNoDelay());  //来自于vo
