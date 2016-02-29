@@ -10,9 +10,6 @@ VTRANS的意义
 vrot的意义
 [角速度]
 
-"main_vo.cpp"中image_callback();ConstPtr前没加::可以?
-[]
-
 convert_view_to_view_template();用的是哪种滤波?
 []
 
@@ -20,7 +17,7 @@ ros::Time这个类型是干嘛的
 [ros::Time prev_time(0);  //创建一个时间,从0秒开始]
 
 ros::Time::now()的值为系统时间?ROS时间?还是从0开始?
-[]
+[从1970/1/1开始]
 
 成员除以平均值不知它的数学意义是什么
 []
@@ -35,6 +32,6 @@ experience_map.cpp中为何exp_initial_em_deg为90
 []
 
 std::make_heap是什么鬼?
-[]
+[堆排序算法,将容器中最大值方至最前,eg: make_heap(ivec.begin(), ivec.end());]
 
 
